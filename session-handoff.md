@@ -1,12 +1,15 @@
 # Session Handoff — WB Radar & China Matcher
 
-## Состояние на закрытие сессии (2026-06-16, SESSION-START-02)
+## Состояние на закрытие сессии (2026-06-16, SESSION-START-03-FIX)
 
-- Последняя работа в сессии: **восстановление контекста + git checkpoint** (новой бизнес-логики не писалось).
+- Последняя работа в сессии: **git-fix — добавлены пустые пакеты gui/harvest/matcher в репозиторий** (новой бизнес-логики не писалось).
 - Выполнено: **F00, F01, F02, F03, F04, F05, F06, F06-FIX-01** — все done (см. feature_list.json).
 - **active_feature = F07 (status: todo). F07 НЕ начат** — код LLM-слоя не тронут (`core/llm/` не существует).
-- **VCS: git инициализирован.** Первый checkpoint-коммит **`a88980b`** —
-  "F00-F06: complete foundation, WB clients, and browser base" (29 файлов, +3718 строк). F00–F06 зафиксированы.
+- **VCS: git инициализирован.** Коммиты:
+  - `a88980b` — F00-F06: complete foundation, WB clients, and browser base (29 файлов, +3718).
+  - `9552334` — docs: record handoff before F07.
+  - `f2b581f` — F00: track empty project packages (gui/harvest/matcher `__init__.py`).
+- **gui/harvest/matcher теперь tracked** (пустые `__init__.py`, стабы F00-каркаса). Чистый checkout воспроизводит F00–F06.
 
 ## Что важно знать новому агенту
 
@@ -29,8 +32,9 @@
 ## Команды проверки
 
 - Тесты: `.\.venv\Scripts\python.exe -m pytest -m "not live"` → ожидаемо **91 passed, 4 deselected**.
-- Импорт-чек: `.\.venv\Scripts\python.exe -c "from core.browser import BrowserManager; print('browser ok')"`.
-- Git: `git log --oneline` → `a88980b F00-F06: complete foundation, WB clients, and browser base`.
+- Импорт-чек пакетов: `.\.venv\Scripts\python.exe -c "import core, matcher, harvest, gui; print('packages ok')"`.
+- Импорт-чек browser: `.\.venv\Scripts\python.exe -c "from core.browser import BrowserManager; print('browser ok')"`.
+- Git: `git log --oneline` → `f2b581f` / `9552334` / `a88980b`.
 - Live F03: `$env:WB_TEST_NMID="<артикул>"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_detail.py::test_get_detail_live -s`
 - Live F04: `$env:WB_TEST_QUERY="фен"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_search.py::test_search_live -s`
 - Live F05: `$env:WB_TEST_IMTID="<imtId>"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_feedbacks.py::test_get_reviews_live -s`

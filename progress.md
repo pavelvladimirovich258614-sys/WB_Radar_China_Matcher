@@ -4,6 +4,18 @@ F07 — LLM слой: base + OpenRouter (status: todo) — следующая. *
 
 ## Журнал
 
+## SESSION-START-03-FIX (2026-06-16) — git-fix: track empty project packages
+
+- Цель: первый checkpoint должен воспроизводить F00–F06 на чистом checkout, включая пакеты gui/harvest/matcher.
+- gui/, harvest/, matcher/ уже содержали пустые `__init__.py` (0 строк) от F00-каркаса, но не попали в первый
+  коммит `a88980b`. Добавлены в git: `git add gui/__init__.py harvest/__init__.py matcher/__init__.py`.
+- Коммит **`f2b581f`** — "F00: track empty project packages" (3 файла, +0 строк; пустые стабы, бизнес-логики нет).
+- **gui/harvest/matcher теперь tracked.** `__pycache__/` и служебные каталоги (.hermes/, .factory/) НЕ добавлены.
+- Тесты: `pytest -m "not live"` → **91 passed, 4 deselected**.
+- Импорт-чек: `import core, matcher, harvest, gui` → **packages ok**.
+- active_feature = F07 (НЕ начат). F07 НЕ выполнялся.
+- Коммиты на данный момент: `a88980b` (F00-F06), `9552334` (docs handoff), `f2b581f` (packages fix).
+
 ## SESSION-START-02 (2026-06-16) — восстановление контекста + git checkpoint
 
 - Восстановлено состояние: F00–F06 done, F06-FIX-01 done, active_feature=F07 (НЕ начат).
