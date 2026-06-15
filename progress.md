@@ -1,8 +1,24 @@
 ## Активная фича
 
-F07 — LLM слой: base + OpenRouter (status: todo) — следующая
+F07 — LLM слой: base + OpenRouter (status: todo) — следующая. **F07 НЕ начат** (ждём «ОК F07» от пользователя).
 
 ## Журнал
+
+## SESSION-START-02 (2026-06-16) — восстановление контекста + git checkpoint
+
+- Восстановлено состояние: F00–F06 done, F06-FIX-01 done, active_feature=F07 (НЕ начат).
+- Подтверждено: `core/llm/` не существует → код LLM-слоя не тронут (F07 не начинался).
+- Тесты: `pytest -m "not live"` → **91 passed, 4 deselected** (бенчмарк совпал).
+- Импорт-чеки: config ok / models ok / wb public ok / browser ok — все зелёные.
+- VCS: `git init` выполнен. Создан первый checkpoint-коммит **`a88980b`** —
+  "F00-F06: complete foundation, WB clients, and browser base" (29 файлов, +3718 строк).
+- .gitignore проверен: `.env`, `sessions/`, `output/`, `.venv/`, `__pycache__/`, `*.pyc`, `*.db`,
+  `.pytest_cache/`, `.factory/` — в git не попадают. Секретов в staged-диффе нет (`.env.example` — пустой шаблон).
+- **F00–F06 зафиксированы в git.** Следующий шаг: F07 (LLM слой: base + OpenRouter).
+- Команда проверки: `.\.venv\Scripts\python.exe -m pytest -m "not live"` → 91 passed, 4 deselected.
+- Known issue: WB-эндпоинты (card/search/feedbacks) отдают 403 из текущего окружения — стоп-правило AGENTS.md,
+  защиту НЕ обходить. Не-live тесты на фикстурах зелёные.
+- F07 НЕ выполнялся в этой сессии (только восстановление + checkpoint). Ждём «ОК F07».
 
 ## SESSION-CLOSE-01 (2026-06-16) — сессия зафиксирована
 
