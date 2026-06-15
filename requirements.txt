@@ -1,0 +1,15 @@
+flet
+playwright
+httpx
+pydantic>=2
+pydantic-settings
+open_clip_torch
+torch
+imagehash
+pillow
+pandas
+pytest
+pytest-mock
+python-dotenv
+tenacity
+pyyaml

@@ -1,0 +1,9 @@
+sessions/
+output/
+.env
+__pycache__/
+*.pyc
+*.db
+.venv/
+.pytest_cache/
+.factory/

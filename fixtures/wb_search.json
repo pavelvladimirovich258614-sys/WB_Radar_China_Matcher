@@ -1,0 +1,60 @@
+{
+  "metadata": {"total": 12345, "page": 1, "pages": 247},
+  "data": {
+    "products": [
+      {
+        "id": 10000001,
+        "root": 20000001,
+        "name": "Фен для волос profesionalный BrandA",
+        "brand": "BrandA",
+        "priceU": 120000,
+        "salePriceU": 89000,
+        "feedbacks": 512,
+        "rating": 4.7,
+        "reviewRating": 4.7,
+        "pics": 6
+      },
+      {
+        "id": 10000002,
+        "root": 20000002,
+        "name": "Фен мощный ионизатор",
+        "brand": "BrandB",
+        "priceU": 250000,
+        "salePriceU": 199000,
+        "feedbacks": 120,
+        "rating": 4.5,
+        "pics": 4
+      },
+      {
+        "id": 10000003,
+        "name": "Фен складной дорожный без root",
+        "brand": "BrandC",
+        "salePriceU": 45000,
+        "feedbacks": 0,
+        "rating": 0.0,
+        "pics": 1
+      },
+      {
+        "id": 10000004,
+        "root": 20000004,
+        "name": "Фен-щётка для укладки",
+        "brand": "BrandD",
+        "priceU": 90000,
+        "salePriceU": 72000,
+        "feedbacks": 38,
+        "rating": 4.2,
+        "pics": 5
+      },
+      {
+        "id": 10000005,
+        "root": 20000005,
+        "name": "Сушка для волос турмалиновая",
+        "brand": "BrandE",
+        "salePriceU": 310000,
+        "feedbacks": 980,
+        "rating": 4.9,
+        "pics": 8
+      }
+    ]
+  }
+}

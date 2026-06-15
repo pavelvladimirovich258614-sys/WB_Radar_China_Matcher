@@ -1,0 +1,210 @@
+{
+  "project": "WB Radar & China Matcher",
+
+  "active_feature": "F07",
+
+  "features": [
+    {
+      "id": "F00",
+      "title": "Каркас проекта + pytest + структура",
+      "deps": [],
+      "status": "done"
+    },
+
+    {
+      "id": "F01",
+      "title": "config.yaml + загрузчик + .env",
+      "deps": ["F00"],
+      "status": "done"
+    },
+
+    {
+      "id": "F02",
+      "title": "Модели данных (pydantic)",
+      "deps": ["F00"],
+      "status": "done"
+    },
+
+    {
+      "id": "F03",
+      "title": "WB client: card.wb.ru detail (nmId->imtId,img,feedbacks,rating)",
+      "deps": ["F01", "F02"],
+      "status": "done"
+    },
+
+    {
+      "id": "F04",
+      "title": "WB client: search/catalog (товары с feedbacks/rating)",
+      "deps": ["F03"],
+      "status": "done"
+    },
+
+    {
+      "id": "F05",
+      "title": "WB client: public-feedbacks (отзывы по imtId + видео-URL)",
+      "deps": ["F03"],
+      "status": "done"
+    },
+
+    {
+      "id": "F06",
+      "title": "Playwright base (сессии, proxy, ручной логин, без обхода)",
+      "deps": ["F01"],
+      "status": "done"
+    },
+
+    {
+      "id": "F07",
+      "title": "LLM слой: base + OpenRouter",
+      "deps": ["F01"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F08",
+      "title": "LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный",
+      "deps": ["F07"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F09",
+      "title": "LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)",
+      "deps": ["F07", "F06"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F10",
+      "title": "Storage: sqlite-кэш + JSON/CSV экспорт",
+      "deps": ["F02"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F11",
+      "title": "Input resolver: артикул/ссылка/фото -> query image",
+      "deps": ["F03"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F12",
+      "title": "China driver: Alibaba.com image search (дефолт, без логина)",
+      "deps": ["F06", "F11"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F13",
+      "title": "China driver: 1688 image search (логин-сессия)",
+      "deps": ["F06", "F11"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F14",
+      "title": "China driver: Taobao 拍立淘 (опц., логин)",
+      "deps": ["F06", "F11"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F15",
+      "title": "CLIP + pHash ранкер (1:1)",
+      "deps": ["F11"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F16",
+      "title": "China video extractor (主图视频 .mp4)",
+      "deps": ["F06", "F15"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F17",
+      "title": "WB review-video harvester (видео из отзывов)",
+      "deps": ["F05"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F18",
+      "title": "Video downloader + организация по nmId",
+      "deps": ["F16", "F17"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F19",
+      "title": "Description writer (LLM: описание/подводка под видео)",
+      "deps": ["F08", "F18", "F22"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F20",
+      "title": "Viral detector (velocity + viral_score)",
+      "deps": ["F04", "F05"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F21",
+      "title": "Reviews collector (массовый сбор по топ-товарам)",
+      "deps": ["F05", "F20"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F22",
+      "title": "VoC analyzer (боли/желания/страхи JSON)",
+      "deps": ["F08", "F21"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F23",
+      "title": "Hook generator (.md хуки + структура ролика)",
+      "deps": ["F22"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F24",
+      "title": "GUI вкладка Матчер China",
+      "deps": ["F12", "F15", "F16", "F18"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F25",
+      "title": "GUI вкладка Разведка WB + мост в Матчер",
+      "deps": ["F20", "F22", "F23", "F17"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F26",
+      "title": "GUI настройки: провайдеры LLM/прокси/логины",
+      "deps": ["F08", "F06"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F27",
+      "title": "End-to-end + интеграционные тесты",
+      "deps": ["F24", "F25", "F26"],
+      "status": "todo"
+    },
+
+    {
+      "id": "F28",
+      "title": "Сборка .exe (flet pack) + проверка на чистой машине",
+      "deps": ["F27"],
+      "status": "todo"
+    }
+  ]
+}

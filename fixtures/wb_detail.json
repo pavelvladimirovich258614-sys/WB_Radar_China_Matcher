@@ -1,0 +1,20 @@
+{
+  "state": 0,
+  "meta": {},
+  "data": {
+    "products": [
+      {
+        "id": 12345678,
+        "root": 87654321,
+        "name": "Фен для волос мощный Professional",
+        "brand": "BrandX",
+        "priceU": 250000,
+        "salePriceU": 199000,
+        "feedbacks": 120,
+        "rating": 4.6,
+        "reviewRating": 4.6,
+        "pics": 5
+      }
+    ]
+  }
+}

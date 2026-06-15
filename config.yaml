@@ -1,0 +1,27 @@
+wb:
+  hosts:
+    card: https://card.wb.ru
+    search: https://search.wb.ru
+    catalog: https://catalog.wb.ru
+    feedbacks: https://feedbacks.api.wb.ru
+  dest: "-1257786"
+  rate_limit_rps: 1.0
+  retries: 3
+
+matcher:
+  marketplaces: [alibaba, s1688, taobao]
+  similarity_threshold: 0.85
+  max_candidates: 20
+  headless: false
+
+llm:
+  provider: openrouter
+  model: "openai/gpt-4o-mini"
+  temperature: 0.4
+
+proxy: null
+
+paths:
+  output: ./output
+  sessions: ./sessions
+  db: ./cache.db

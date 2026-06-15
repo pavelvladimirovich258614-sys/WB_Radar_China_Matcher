@@ -1,0 +1,59 @@
+{
+  "data": {
+    "feedbackCount": 5,
+    "valuationDistribution": { "5": 2, "4": 1, "3": 1, "2": 1 },
+    "feedbacks": [
+      {
+        "id": "FB001",
+        "imtId": 87654321,
+        "nmId": 12345678,
+        "text": "Отличный фен, мощный поток воздуха.",
+        "rating": 5,
+        "createdDate": "2024-05-01T10:30:00",
+        "pros": "Мощный\nЛёгкий",
+        "cons": "Дорогой",
+        "photos": [
+          { "full": "https://photos.wb.ru/v1/full1.jpg", "large": "https://photos.wb.ru/v1/large1.jpg" },
+          "https://photos.wb.ru/v1/photo2.jpg"
+        ],
+        "video_url": "https://video.wb.ru/review1.mp4"
+      },
+      {
+        "id": "FB002",
+        "text": "",
+        "rating": 4,
+        "createdDate": "2024-04-15T12:00:00",
+        "pros": "",
+        "cons": "",
+        "videos": [
+          { "url": "https://video.wb.ru/review2.mp4", "thumbnail": "https://photos.wb.ru/v1/thumb2.jpg" }
+        ]
+      },
+      {
+        "id": "FB003",
+        "nmId": 12345678,
+        "text": "Нормальный за свои деньги",
+        "rating": 3,
+        "date": "2024-03-10",
+        "pros": "Дешёвый",
+        "cons": "Слабый мотор\nШумит"
+      },
+      {
+        "id": "FB004",
+        "text": "Видео и фото в комплекте",
+        "rating": 5,
+        "createdDate": "2024-02-01",
+        "media": [
+          { "type": "image", "url": "https://photos.wb.ru/v2/img1.jpg" },
+          { "type": "video", "url": "https://video.wb.ru/review3.mp4", "thumbnail": "https://photos.wb.ru/v2/thumb.jpg" }
+        ],
+        "photoUrls": ["https://photos.wb.ru/v2/p1.jpg", "https://photos.wb.ru/v2/p2.jpg"]
+      },
+      {
+        "id": "FB005",
+        "text": "Без медиа вообще",
+        "rating": 2
+      }
+    ]
+  }
+}
