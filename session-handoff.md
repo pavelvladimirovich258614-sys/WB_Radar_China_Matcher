@@ -1,39 +1,45 @@
 # Session Handoff — WB Radar & China Matcher
 
-## SESSION-CLOSE-05 (2026-06-16) — F10 committed
+## SESSION-CLOSE-06 (2026-06-16) — F11 built, awaiting commit
 
+- **Последняя выполненная фича: F11 — Input resolver: артикул/ссылка/фото -> query image** (status: done, НЕ закоммичена — ждёт команды пользователя).
 - **Последняя закоммиченная фича: F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (status: done).
-  - Коммит: `1432b34` — "F10: add sqlite cache and export storage" (5 файлов, +594/-23).
-- **Предыдущий коммит: F08 — LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный** (status: done).
+- **F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)** — **deferred/skipped**.
+- **Активная фича: F12 — China driver: Alibaba.com image search (дефолт, без логина)** (status: todo, НЕ начат).
+- **F00–F11** подтверждены done.
 - **F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)** — **deferred/skipped** (не реализован, не коммичен).
 - **Активная фича: F11 — Input resolver: артикул/ссылка/фото -> query image** (status: todo, НЕ начат).
 - **F00–F10** подтверждены done.
 
 ## VCS
 
-- **F10 закоммичен.** В working tree нет изменений F10.
+- **F11 НЕ закоммичен.** Изменения в working tree:
+  - `matcher/input.py` — Input resolver.
+  - `tests/test_matcher_input.py` — 22 не-live теста (21 passed, 1 skipped WebP).
+- **F10 зафиксирован.**
 - Последние коммиты:
   - `1432b34` — F10: add sqlite cache and export storage (5 файлов, +594/-23)
   - `d4830df` — F08: add ZAI, Groq, and Ollama LLM providers
 
-## Что сделано в F10
+## Что сделано в F11
 
-- `core/storage.py` — Storage-слой:
-  - `Storage(db_path=None, output_dir=None)` с defaults из `settings.paths.db`/`settings.paths.output`.
-  - sqlite-таблица `cache` (`key`, `namespace`, `value_json`, `created_at`, `updated_at`, `metadata_json`) + индекс по `namespace`.
-  - `make_cache_key(namespace, payload)` — стабильный sha256.
-  - `get`, `set`, `get_or_fetch`, `delete`, `clear_namespace`.
-  - `get_or_fetch` не вызывает `fn` при cache hit.
-  - Сериализация pydantic `BaseModel` через `model_dump(mode="json")`, datetime → ISO.
-  - `StorageSerializationError` для несериализуемых объектов.
-  - `save_json(data, path_or_name)` — dict, pydantic model, list[model] в `output/`.
-  - `save_csv(data, path_or_name, columns=None)` — list[dict], list[pydantic], pandas DataFrame, пустой список.
-- `tests/test_storage.py` — 24 не-live теста:
-  - `make_cache_key`, stable/unstable payload + namespace.
-  - default paths, set/get roundtrip, overwrite, cache hit/miss, delete, clear_namespace.
-  - pydantic/datetime сериализация, ошибка сериализации, metadata/timestamps.
-  - `save_json` для dict/pydantic/list + абсолютный путь.
-  - `save_csv` для list[dict], list[pydantic], pandas DataFrame, пустой список, columns-параметр, одиночный dict.
+- `matcher/input.py` — Input resolver:
+  - `ResolvedInput` dataclass: `query_image_path`, `source_type` (`wb_nm`/`wb_url`/`file`), `nmId`, `product`, `original_input`, `meta`.
+  - Иерархия ошибок: `InputResolverError`, `InvalidInputError`, `ImageDownloadError`, `ImageValidationError`.
+  - `parse_wb_nm_id(value)` — int/строка 5–12 цифр.
+  - `is_wb_url(value)` — http(s) + `wildberries.ru` + `/catalog/<nmId>/detail.aspx`.
+  - `extract_wb_nm_id_from_url(url)` — извлекает nmId только с WB-доменов.
+  - `normalize_image_to_query_jpg(src, output_path)` — Pillow RGB JPEG thumbnail, поддержка Path/bytes/BytesIO.
+  - `resolve_input(value, *, wb_client=None, output_dir=None)`:
+    - WB артикул → `get_detail` → скачать `img_url` → `output/query.jpg`.
+    - WB ссылка → извлечь nmId → `get_detail` → скачать → `output/query.jpg`.
+    - локальное фото → RGB JPEG → `output/query.jpg`.
+    - default `output_dir` из `settings.paths.output`; injected `wb_client` не закрывается.
+- `tests/test_matcher_input.py` — 22 не-live теста:
+  - парсинг nmId, WB-URL, query-параметры, сторонние домены.
+  - локальный файл: jpg, png с alpha, webp, unsupported ext, missing, broken.
+  - WB-путь: мок WBPublic + download, пустой img_url, ошибка download, default client создаётся/закрывается.
+  - нормализация и resize, unrecognized input.
 
 ## Почему F09 deferred
 
@@ -46,14 +52,14 @@ F09 (ChatGPT-web) — опциональная фича. Она нестабил
 
 ## Команды проверки
 
-- Тесты (не-live): `.\.venv\Scripts\python.exe -m pytest -m "not live" -q` → **223 passed, 8 deselected** (199 → +24 новых не-live теста storage).
+- Тесты (не-live): `.\.venv\Scripts\python.exe -m pytest -m "not live" -q` → **244 passed, 1 skipped, 8 deselected** (223 → +21 новых не-live теста F11, +1 skipped WebP).
 - Live ZAI: `$env:ZAI_API_KEY="..."; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_zai.py -s`
 - Live Groq: `$env:GROQ_API_KEY="..."; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_groq.py -s`
 - Live Ollama: `$env:OLLAMA_BASE_URL="http://localhost:11434"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_ollama.py -s`
 
 ## Следующий шаг
 
-**F11 — Input resolver: артикул/ссылка/фото -> query image** (deps: [F03]). **F11 НЕ начат** — ждём «ОК F11».
+**F12 — China driver: Alibaba.com image search (дефолт, без логина)** (deps: [F06, F11]). **F12 НЕ начат** — ждём «ОК F12».
 
 ## История
 
@@ -61,5 +67,6 @@ F09 (ChatGPT-web) — опциональная фича. Она нестабил
 - F08: done + committed.
 - F09: deferred.
 - F10: done + committed.
+- F11: done, не закоммичен (ожидает команды пользователя).
 
 (End of file)

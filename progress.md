@@ -1,8 +1,38 @@
 ## Активная фича
 
-F11 — Input resolver: артикул/ссылка/фото -> query image (status: todo) — следующая. **F11 НЕ начат** (ждём «ОК F11» от пользователя).
+F12 — China driver: Alibaba.com image search (дефолт, без логина) (status: todo) — следующая. **F12 НЕ начат** (ждём «ОК F12» от пользователя).
 
 ## Журнал
+
+## F11 — done (2026-06-16)
+
+Реализовано эстафетой из 5 саб-агентов (PLAN → BUILD parsing → BUILD resolve+normalize → TESTS → REVIEW/DOCS). **Не закоммичено** — ждёт команды пользователя.
+
+- **matcher/input.py** — Input resolver:
+  - `ResolvedInput` dataclass: `query_image_path`, `source_type`, `nmId`, `product`, `original_input`, `meta`.
+  - `InputResolverError`, `InvalidInputError`, `ImageDownloadError`, `ImageValidationError`.
+  - `parse_wb_nm_id(value)` — int/строка 5–12 цифр.
+  - `is_wb_url(value)` — http(s) + `wildberries.ru` + `/catalog/<nmId>/detail.aspx`.
+  - `extract_wb_nm_id_from_url(url)` — извлекает nmId, отвергает сторонние домены.
+  - `normalize_image_to_query_jpg(src, output_path, *, max_size, quality)` — Pillow RGB JPEG, thumbnail, поддержка Path/bytes/BytesIO.
+  - `resolve_input(value, *, wb_client=None, output_dir=None)` — единый вход:
+    - WB артикул → `wb_client.get_detail(nmId)` → скачать `img_url` → `output/query.jpg`.
+    - WB ссылка → извлечь nmId → `get_detail` → скачать → `output/query.jpg`.
+    - локальное фото `.jpg/.jpeg/.png/.webp` → RGB JPEG → `output/query.jpg`.
+    - `output_dir` default из `settings.paths.output`.
+    - Внедрённый `wb_client` не закрывается; созданный по умолчанию — закрывается.
+- **tests/test_matcher_input.py** — 22 теста (21 passed, 1 skipped WebP; без сети):
+  - парсинг nmId из int/string/мусора;
+  - `is_wb_url` и `extract_wb_nm_id_from_url` включая query-параметры и сторонние домены;
+  - локальный файл: jpg, PNG с alpha → RGB JPEG, WebP, unsupported ext, missing file, broken image;
+  - WB-путь: мок WBPublic + мок скачивания, пустой `img_url`, ошибка download, default client создаётся/закрывается;
+  - `normalize_image_to_query_jpg` и resize;
+  - unrecognized input → `InvalidInputError`.
+- **Прогон**: `pytest -m "not live" -q` → **244 passed, 1 skipped, 8 deselected** (было 223 passed + 1 skipped; +21 новых не-live теста F11). F00–F10 не сломаны.
+- **Без заглушек**: нет `pass`/`TODO` в бизнес-логике (только легитимные `pass` в телах exception-классов).
+- **Security**: `output/` не tracked; секреты не трогались; нет новых внешних запросов в обычных тестах.
+- **F11 НЕ закоммичен** — коммит по команде пользователя вида "F11: add input resolver".
+- **F12 не начат**; китайские сайты, CLIP/pHash, GUI не тронуты.
 
 ## F10 — done (2026-06-16)
 

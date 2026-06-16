@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F10",
+  "active_feature": "F12",
 
   "features": [
     {
@@ -85,7 +85,7 @@
       "id": "F11",
       "title": "Input resolver: артикул/ссылка/фото -> query image",
       "deps": ["F03"],
-      "status": "todo"
+      "status": "done"
     },
 
     {
