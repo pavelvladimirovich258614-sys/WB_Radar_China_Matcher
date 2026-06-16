@@ -4,6 +4,17 @@ F08 — LLM провайдеры: Z.AI/Groq/Ollama (status: todo) — следу
 
 ## Журнал
 
+## SESSION-CLOSE-02 (2026-06-16) — сессия закрыта после F07
+
+- Принято: F07 (LLM слой: base + OpenRouter) — done и закоммичено.
+- Статус: F00–F07 done; active_feature=F08 (НЕ начат, ждём «ОК F08»).
+- Тесты: `pytest -m "not live"` → **136 passed, 5 deselected**.
+- Импорт-чеки: `from core.llm import get_provider; from core.llm.base import LLMProvider` → "llm ok"; `from core.wb_public import WBPublic; from core.browser import BrowserManager` → "f03-f06 ok".
+- VCS: последние коммиты `5a73f5c` (F07: add LLM base layer and OpenRouter provider), `2dcd3c1` (docs: record F07 handoff before F08). working tree чист (только untracked служебный `.hermes/`, не проектный).
+- Security (всё PASS): `.env`/`sessions/`/`output/`/`.venv/`/`.hermes/` НЕ tracked; ключей в коде нет; `config.yaml` без секретов; `core/llm/` содержит только `base.py`/`openrouter.py`/`__init__.py` (zai/groq/ollama НЕ созданы → F08 не начат).
+- Known issue: WB live может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту НЕ обходить. OpenRouter live требует `OPENROUTER_API_KEY` (без него live-тест skip).
+- Следующий шаг: F08 — LLM провайдеры Z.AI / Groq / Ollama локальный. **F08 НЕ начат.**
+
 ## F07 — done (2026-06-16)
 
 Реализовано эстафетой из 5 саб-агентов (PLAN → BUILD → TESTS → REVIEW → DOCS).

@@ -1,8 +1,8 @@
 # Session Handoff — WB Radar & China Matcher
 
-## Состояние на закрытие сессии (2026-06-16, F07 done)
+## Состояние на закрытие сессии (2026-06-16, SESSION-CLOSE-02 после F07)
 
-- Последняя работа в сессии: **F07 — LLM слой: base + OpenRouter** (status: done).
+- Последняя работа в сессии: **F07 — LLM слой: base + OpenRouter** (status: done, закоммичен). Сессия закрыта.
 - Выполнено: **F00, F01, F02, F03, F04, F05, F06, F06-FIX-01, F07** — все done (см. feature_list.json).
 - **active_feature = F08 (status: todo). F08 НЕ начат** — ждём «ОК F08» от пользователя. Завязки F08 = [F07] (done).
 - **VCS: git инициализирован.** Коммиты:
@@ -46,7 +46,7 @@
 - Тесты (не-live): `.\.venv\Scripts\python.exe -m pytest -m "not live"` → ожидаемо **136 passed, 5 deselected**.
 - Импорт-чек LLM: `.\.venv\Scripts\python.exe -c "from core.llm import get_provider; from core.llm.base import LLMProvider; print('llm ok')"`.
 - Импорт-чек F03–F06: `.\.venv\Scripts\python.exe -c "import core, matcher, harvest, gui; from core.wb_public import WBPublic; from core.browser import BrowserManager; print('f03-f06 ok')"`.
-- Git: `git log --oneline` → `f2b581f` / `9552334` / `a88980b` (+ последующие после коммита F07).
+- Git: `git log --oneline` → последние: `2dcd3c1` (docs F07 handoff), `5a73f5c` (F07), `61da29d`, `f2b581f`, `9552334`, `a88980b`.
 - Live F03: `$env:WB_TEST_NMID="<артикул>"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_detail.py::test_get_detail_live -s`
 - Live F04: `$env:WB_TEST_QUERY="фен"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_search.py::test_search_live -s`
 - Live F05: `$env:WB_TEST_IMTID="<imtId>"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_feedbacks.py::test_get_reviews_live -s`
