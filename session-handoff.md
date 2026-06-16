@@ -1,8 +1,9 @@
 # Session Handoff — WB Radar & China Matcher
 
-## F13 — done: China driver: 1688 image search (логин-сессия)
+## F13 — done + committed: China driver: 1688 image search (логин-сессия)
 
 **Последняя фича**: F13 — done.
+**Коммит**: `835f78c` — "F13: add 1688 image search driver".
 
 ## Что сделано
 

@@ -4,9 +4,10 @@ F14 — China driver: Taobao 拍立淘 (опц., логин) (status: todo).
 
 ## Журнал
 
-### F13 — done (2026-06-16)
+### F13 — done + committed (2026-06-16)
 
 - **Саб-агенты**: эстафета 1→2→3→4→5 (PLAN → BUILD module+errors → BUILD Playwright flow+parser → TESTS/REGRESSION → REVIEW/DOCS/FINALIZE).
+- **Коммит**: `835f78c` — "F13: add 1688 image search driver".
 - **Файлы**:
   - `matcher/china/s1688.py` — драйвер 1688 image search:
     - иерархия ошибок `S1688SearchError` → `S1688CaptchaError`, `S1688LoginRequiredError`, `S1688NoResultsError`;
