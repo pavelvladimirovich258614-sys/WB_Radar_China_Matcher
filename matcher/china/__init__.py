@@ -21,6 +21,18 @@ from matcher.china.s1688 import (
     normalize_candidate_url,
     parse_results_html as parse_s1688_results_html,
 )
+from matcher.china.taobao import (
+    TaobaoCaptchaError,
+    TaobaoImageSearchDriver,
+    TaobaoLoginRequiredError,
+    TaobaoNoResultsError,
+    TaobaoSearchError,
+    is_captcha_html as is_taobao_captcha_html,
+    is_empty_results_html as is_taobao_empty_results_html,
+    is_login_required_html as is_taobao_login_required_html,
+    normalize_candidate_url as normalize_taobao_candidate_url,
+    parse_results_html as parse_taobao_results_html,
+)
 
 __all__ = [
     "ChinaSearchDriver",
@@ -40,4 +52,14 @@ __all__ = [
     "is_empty_results_html",
     "normalize_candidate_url",
     "parse_s1688_results_html",
+    "TaobaoImageSearchDriver",
+    "TaobaoSearchError",
+    "TaobaoCaptchaError",
+    "TaobaoLoginRequiredError",
+    "TaobaoNoResultsError",
+    "is_taobao_captcha_html",
+    "is_taobao_login_required_html",
+    "is_taobao_empty_results_html",
+    "normalize_taobao_candidate_url",
+    "parse_taobao_results_html",
 ]

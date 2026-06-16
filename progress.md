@@ -1,8 +1,41 @@
 ## Активная фича
 
-F14 — China driver: Taobao 拍立淘 (опц., логин) (status: todo).
+F15 — CLIP + pHash ранкер (1:1) (status: todo). Завязка F11 done.
 
 ## Журнал
+
+### F14 — done (2026-06-16)
+
+- **Саб-агенты**: эстафета 1→2→3→4→5 (PLAN → BUILD module+errors → BUILD Playwright flow+parser → TESTS/REGRESSION → REVIEW/DOCS/FINALIZE).
+- **Файлы**:
+  - `matcher/china/taobao.py` — драйвер Taobao image search:
+    - иерархия ошибок `TaobaoSearchError` → `TaobaoCaptchaError`, `TaobaoLoginRequiredError`, `TaobaoNoResultsError`;
+    - чистые функции `is_captcha_html`, `is_login_required_html`, `is_empty_results_html`, `normalize_candidate_url`;
+    - `parse_results_html` — стандартная библиотека, извлечение карточек с балансировкой вложенных `<div>`, поддержка `data-src`, `data-ks-lazyload`, `data-price`, `data-title`, `title`, `alt`, ¥/￥ цен, video/play-признаков;
+    - `TaobaoImageSearchDriver` с `search_by_image`, `close`, `__enter__/__exit__`;
+    - интеграция `BrowserManager` (site="taobao") и `Storage` (cache namespace `"taobao:image_search"`);
+    - ownership browser: закрывает только созданный самим драйвером `BrowserManager`;
+  - `matcher/china/__init__.py` — ре-экспорт Taobao-сущностей с алиасами;
+  - `fixtures/taobao_search_results.html`, `taobao_captcha.html`, `taobao_login.html`, `taobao_empty.html`;
+  - `tests/test_taobao_driver.py` — 34 не-live теста + 1 live-gated тест.
+- **Ручной логин перед live**:
+  - создать сессию: `BrowserManager().manual_login("taobao", url="https://www.taobao.com/markets/pic/search")`;
+  - войти в видимом окне, решить капчу руками, нажать Enter;
+  - сессия сохранится в `sessions/taobao/`;
+  - затем: `$env:TAOBAO_LIVE="1"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_taobao_driver.py -s`.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **325 passed, 1 skipped, 11 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F14);
+  - deselected: 3 live-теста Alibaba/1688/Taobao (Alibaba + 1688 + Taobao) + 8 ранее существовавших live = 11;
+  - live-тест Taobao без `TAOBAO_LIVE=1` корректно deselected/skip'ается.
+- **Security/review PASS**:
+  - в бизнес-логике нет `pass`/`TODO`/`реализуем позже` (только легитимные control-flow `pass`);
+  - нет stealth/anti-bot bypass/captcha_solver;
+  - captcha/login обрабатываются исключениями, не обходятся;
+  - browser ownership: `close()` закрывает только созданный драйвером `BrowserManager`;
+  - `sessions/`, `output/`, `*.db`, `.venv/`, `.hermes/` не tracked.
+- **Следующий шаг**: F15 — CLIP + pHash ранкер 1:1.
+
 
 ### F13 — done + committed (2026-06-16)
 

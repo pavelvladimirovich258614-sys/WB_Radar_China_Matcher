@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><title>淘宝拍立淘搜索结果</title></head>
+<body>
+<div class="search-item-list">
+  <!-- Card 1: protocol-relative URL, data-ks-lazyload, title via alt -->
+  <div class="item-card" data-title="TWS Wireless Bluetooth Earbuds">
+    <a href="//item.taobao.com/item.htm?id=123456">
+      <img data-ks-lazyload="//img.example.com/taobao/earbuds_123456.jpg" alt="TWS Wireless Bluetooth Earbuds"/>
+    </a>
+    <div class="item-title">TWS Wireless Bluetooth Earbuds</div>
+    <div class="price"><span>¥ 19.90</span></div>
+  </div>
+
+  <!-- Card 2: relative URL, src thumb, price via ￥, video via video-icon -->
+  <div class="item-card">
+    <a href="/item/654321.html">
+      <img src="https://img.example.com/taobao/headphones_654321.jpg" alt="Bluetooth Headphones Over Ear"/>
+    </a>
+    <div class="item-title">Bluetooth Headphones Over Ear</div>
+    <div class="price"><span class="price-num">￥88</span></div>
+    <i class="play-icon"></i>
+  </div>
+
+  <!-- Card 3: absolute URL, data-src thumb, data-price, video via video tag -->
+  <div class="item-card" data-title="Mini TWS Earbuds with Video">
+    <a href="https://item.taobao.com/item.htm?id=111222333">
+      <img data-src="//img.example.com/taobao/video_111222333.jpg" alt=""/>
+    </a>
+    <div class="item-title">Mini TWS Earbuds with Video</div>
+    <span class="real-price" data-price="56.70">¥ 56.70</span>
+    <video src="https://cloud.video.taobao.com/video_111222333.mp4"></video>
+  </div>
+
+  <!-- Card 4: relative URL without leading slash, title via data-title, data-ks-lazyload -->
+  <div class="item-card" data-title="Sport Bluetooth Earphone">
+    <a href="item/789012.html">
+      <img data-ks-lazyload="//img.example.com/taobao/sport_789012.jpg" alt="Sport Bluetooth Earphone"/>
+    </a>
+    <div class="price"><b>¥ 35.50</b></div>
+  </div>
+
+  <!-- Duplicate of card 1 by URL, must be deduplicated -->
+  <div class="item-card">
+    <a href="//item.taobao.com/item.htm?id=123456">
+      <img data-ks-lazyload="//img.example.com/taobao/earbuds_123456_dup.jpg" alt="Duplicate Earbuds"/>
+    </a>
+    <div class="item-title">Duplicate Earbuds</div>
+    <div class="price"><span>¥ 99.00</span></div>
+  </div>
+
+  <!-- Invalid phone link, should be skipped -->
+  <div class="item-card">
+    <a href="tel:+8613800138000">
+      <img src="//img.example.com/taobao/phone.jpg" alt="Phone seller"/>
+    </a>
+    <div class="item-title">Phone seller</div>
+    <div class="price"><span>¥ 1.00</span></div>
+  </div>
+</div>
+</body>
+</html>

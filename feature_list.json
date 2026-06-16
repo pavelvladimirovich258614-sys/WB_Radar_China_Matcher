@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F14",
+  "active_feature": "F15",
 
   "features": [
     {
@@ -106,7 +106,7 @@
       "id": "F14",
       "title": "China driver: Taobao 拍立淘 (опц., логин)",
       "deps": ["F06", "F11"],
-      "status": "todo"
+      "status": "done"
     },
 
     {
