@@ -1,24 +1,39 @@
 # Session Handoff — WB Radar & China Matcher
 
-## SESSION-CLOSE-03 (2026-06-16) — F08 done
+## SESSION-CLOSE-03 (2026-06-16) — F08 committed, F09 deferred, F10 pending
 
-- **Последняя фича: F08 — LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный** (status: done).
-- **F00–F08** подтверждены done; **active_feature = F09** (ChatGPT-web опц., НЕ начат).
-- **Что сделано в F08:**
-  - `core/llm/openai_compat.py` — общий `OpenAICompatProvider(LLMProvider)` для OpenAI-compatible API.
-  - `core/llm/zai.py` — `ZAIProvider`, endpoint `https://api.z.ai/v1/chat/completions`, ключ `ZAI_API_KEY`.
-  - `core/llm/groq.py` — `GroqProvider`, endpoint `https://api.groq.com/openai/v1/chat/completions`, ключ `GROQ_API_KEY`.
-  - `core/llm/ollama.py` — `OllamaProvider`, без ключа, endpoint `{OLLAMA_BASE_URL}/api/chat`, default `http://localhost:11434`.
-  - `core/llm/__init__.py` — `get_provider` роутит `openrouter`, `zai`, `z.ai`, `glm`, `groq`, `ollama`.
-  - `tests/conftest.py` + `tests/test_llm_zai.py` + `tests/test_llm_groq.py` + `tests/test_llm_ollama.py` — контрактные тесты на моках + live-тесты под `@pytest.mark.live`.
-- **Результат проверки:** `pytest -m "not live" -q` → **199 passed, 8 deselected**.
-- **Импорт-чек:** `from core.llm.zai import ZAIProvider; from core.llm.groq import GroqProvider; from core.llm.ollama import OllamaProvider` → "llm providers ok".
-- **Security:** ключи только в `.env`/ENV, не в коде/config.yaml; не логируются; `repr=False`.
+- **Последняя закоммиченная фича: F08 — LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный** (status: done).
+- **F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)** — **deferred/skipped** (не реализован, не коммичен).
+- **Активная фича: F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (status: todo, НЕ начат).
+- **F00–F08** подтверждены done.
 
-## Known issues (НЕ обходить)
+## VCS
 
-- WB live = 403 из текущего окружения — стоп-правило AGENTS.md.
-- `get_provider("zai")`/`("groq")` без ключа поднимает `LLMAuthError` — это ожидаемое поведение, не баг.
+- Коммит F08: `d4830df` — "F08: add ZAI, Groq, and Ollama LLM providers" (12 файлов, +1060/-57).
+- Последние коммиты:
+  - `d4830df` — F08: add ZAI, Groq, and Ollama LLM providers
+  - `d306449` — docs: prepare session for F08
+  - `7e7d7fe` — docs: close session after F07
+  - `2dcd3c1` — docs: record F07 handoff before F08
+  - `5a73f5c` — F07: add LLM base layer and OpenRouter provider
+
+## Что сделано в F08
+
+- `core/llm/openai_compat.py` — общий `OpenAICompatProvider(LLMProvider)` для OpenAI-compatible API.
+- `core/llm/zai.py` — `ZAIProvider`, endpoint `https://api.z.ai/v1/chat/completions`, ключ `ZAI_API_KEY`.
+- `core/llm/groq.py` — `GroqProvider`, endpoint `https://api.groq.com/openai/v1/chat/completions`, ключ `GROQ_API_KEY`.
+- `core/llm/ollama.py` — `OllamaProvider`, без ключа, endpoint `{OLLAMA_BASE_URL}/api/chat`, default `http://localhost:11434`.
+- `core/llm/__init__.py` — `get_provider` роутит `openrouter`, `zai`, `z.ai`, `glm`, `groq`, `ollama`.
+- `tests/conftest.py` + `tests/test_llm_zai.py` + `tests/test_llm_groq.py` + `tests/test_llm_ollama.py` — контрактные тесты на моках + live-тесты под `@pytest.mark.live`.
+
+## Почему F09 deferred
+
+F09 (ChatGPT-web) — опциональная фича. Она нестабильна (зависит от web-вёрстки OpenAI и личной сессии), против ToS OpenAI и не нужна для основного пайплайна, потому что уже есть: OpenRouter, Z.AI, Groq, Ollama.
+
+## Known issues
+
+- WB live может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту не обходить.
+- ChatGPT-web не реализован и отложен.
 
 ## Команды проверки
 
@@ -29,20 +44,12 @@
 
 ## Следующий шаг
 
-**F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)**. Завязки F09 = [F07, F06] (оба done). **F09 НЕ начат** — жду решения пользователя: выполнить F09 или пропустить.
+**F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (deps: [F02]). **F10 НЕ начат** — ждём «ОК F10».
 
-## История предыдущих сессий
+## История
 
-### SESSION-START-04 (2026-06-16) — восстановление контекста + подготовка к F08
-
-- Подтверждено: F00–F07 done; active_feature=F08 (status: todo, НЕ начат).
-- VCS: последние коммиты `7e7d7fe docs: close session after F07`, `2dcd3c1 docs: record F07 handoff before F08`, `5a73f5c F07: add LLM base layer and OpenRouter provider`, etc.
-- Тесты: `pytest -m "not live" -q` → 136 passed, 5 deselected.
-- Security: `.env`/`sessions/`/`output/`/`.venv/`/`.hermes/` не tracked; ключей в коде нет.
-
-### SESSION-CLOSE-02 (2026-06-16) — сессия закрыта после F07
-
-- F07 done: `core/llm/base.py`, `openrouter.py`, `__init__.py`, тесты.
-- active_feature=F08 (todo).
+- SESSION-START-04: восстановление + подготовка к F08.
+- F08: done + committed.
+- F09: deferred.
 
 (End of file)

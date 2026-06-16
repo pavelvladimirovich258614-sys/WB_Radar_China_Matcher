@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F09",
+  "active_feature": "F10",
 
   "features": [
     {
@@ -71,7 +71,7 @@
       "id": "F09",
       "title": "LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)",
       "deps": ["F07", "F06"],
-      "status": "todo"
+      "status": "deferred"
     },
 
     {
