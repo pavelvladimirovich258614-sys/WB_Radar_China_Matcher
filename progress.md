@@ -20,7 +20,8 @@ F08 — LLM провайдеры: Z.AI/Groq/Ollama (status: todo) — следу
 - **Безопасность**: `config.yaml` НЕ содержит api_key (только provider/model/temperature); ключи только в `.env`/ENV через `settings.openrouter_api_key`; `.env.example` имеет пустой `OPENROUTER_API_KEY=` плейсхолдер. Ключ не в repr, не в logger, не в exception-текстах.
 - **core/llm/ содержит ТОЛЬКО** `base.py`, `openrouter.py`, `__init__.py` — файлов zai.py/groq.py/ollama.py НЕТ (**F08 не начат**).
 - Заглушек `pass`/`TODO`/"implement later"/"stub" НЕТ (только легитимные `pass` в телах exception-классов, `except: pass` control-flow в extract_json, и `def close(self): pass` / `with ...: pass` в test-doubles).
-- Следующий: F08 (LLM провайдеры: Z.AI/GLM, Groq, Ollama локальный).
+- **F07 зафиксирован в git** — коммит **`5a73f5c`** "F07: add LLM base layer and OpenRouter provider" (8 файлов, +815/-21: core/llm/{base,openrouter,__init__}.py + tests/test_llm_{base,openrouter}.py + progress/feature_list/session-handoff). Секретов в коммите нет (`.env`/sessions/output/.venv/.hermes/__pycache__ не добавлены).
+- Следующий: F08 (LLM провайдеры: Z.AI/GLM, Groq, Ollama локальный). **F08 НЕ начат** — ждём «ОК F08».
 
 ## SESSION-START-03-FIX (2026-06-16) — git-fix: track empty project packages
 

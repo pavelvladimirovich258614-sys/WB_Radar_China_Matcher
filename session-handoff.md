@@ -9,8 +9,9 @@
   - `a88980b` — F00-F06: complete foundation, WB clients, and browser base (29 файлов, +3718).
   - `9552334` — docs: record handoff before F07.
   - `f2b581f` — F00: track empty project packages (gui/harvest/matcher `__init__.py`).
-  - `61da29d` — *(последний коммит перед F07, если был; сверить с `git log --oneline`)*.
-- Коммита F07 ещё нет (оркестратор коммитит по команде пользователя). Файлы F07 готовы к staged: `core/llm/base.py`, `core/llm/openrouter.py`, `core/llm/__init__.py`, `tests/test_llm_base.py`, `tests/test_llm_openrouter.py`.
+  - `61da29d` — docs: record package tracking fix before F07.
+  - **`5a73f5c` — F07: add LLM base layer and OpenRouter provider** (8 файлов, +815/-21) — **F07 зафиксирован.**
+- Файлы F07 в коммите `5a73f5c`: `core/llm/base.py`, `core/llm/openrouter.py`, `core/llm/__init__.py`, `tests/test_llm_base.py`, `tests/test_llm_openrouter.py`, `progress.md`, `feature_list.json`, `session-handoff.md`. Секретов нет (`.env`/sessions/output/.venv/.hermes/__pycache__ не добавлены).
 
 ## Что было сделано в F07
 
