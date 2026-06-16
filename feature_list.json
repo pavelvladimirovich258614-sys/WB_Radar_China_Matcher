@@ -78,7 +78,7 @@
       "id": "F10",
       "title": "Storage: sqlite-кэш + JSON/CSV экспорт",
       "deps": ["F02"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

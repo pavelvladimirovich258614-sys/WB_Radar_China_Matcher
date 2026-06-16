@@ -1,8 +1,27 @@
 ## Активная фича
 
-F10 — Storage: sqlite-кэш + JSON/CSV экспорт (status: todo) — следующая. **F10 НЕ начат** (ждём «ОК F10» от пользователя).
+F11 — Input resolver: артикул/ссылка/фото -> query image (status: todo) — следующая. **F11 НЕ начат** (ждём «ОК F11» от пользователя).
 
 ## Журнал
+
+## F10 — done (2026-06-16)
+
+Реализовано эстафетой из саб-агентов (PLAN → BUILD sqlite cache → BUILD JSON/CSV export → TESTS → REVIEW/DOCS). **Не закоммичено** — ждёт команды пользователя.
+
+- **core/storage.py** — Storage-слой:
+  - `Storage(db_path=None, output_dir=None)` с defaults из `settings.paths.db`/`settings.paths.output`.
+  - sqlite-таблица `cache` (`key`, `namespace`, `value_json`, `created_at`, `updated_at`, `metadata_json`) + индекс по `namespace`.
+  - `StorageError`, `StorageSerializationError`, модульная `make_cache_key(namespace, payload)` — стабильный sha256.
+  - `get`, `set`, `get_or_fetch`, `delete`, `clear_namespace`.
+  - `get_or_fetch` не вызывает `fn` при cache hit.
+  - Сериализация pydantic `BaseModel` через `model_dump(mode="json")`, datetime → ISO, несериализуемое → `StorageSerializationError`.
+  - `save_json(data, path_or_name)` — dict, pydantic model, list[model]; относительное имя → `output/`, абсолютный путь сохраняется как есть.
+  - `save_csv(data, path_or_name, columns=None)` — list[dict], list[pydantic], pandas DataFrame (duck-typing `to_dict`/`columns`), пустой список.
+- **tests/test_storage.py** — 24 не-live теста: stable cache key, default paths, set/get/overwrite, get_or_fetch hit/miss, delete, clear_namespace, pydantic/datetime сериализация, serialization error, metadata/timestamps, save_json (dict/pydantic/list/absolute path), save_csv (list[dict], list[pydantic], pandas DataFrame, empty list, columns, single dict).
+- **Прогон**: `pytest -m "not live" -q` → **223 passed, 8 deselected** (было 199 passed; +24 новых не-live теста storage). F00–F08 не сломаны.
+- **Без заглушек**: нет `pass`/`TODO` в бизнес-логике (только легитимные `pass` в телах exception-классов).
+- **Security**: секреты не трогались; `.env`/`sessions/`/`output/`/`*.db` в `.gitignore`.
+- **F10 НЕ закоммичен** — коммит по команде пользователя вида "F10: add sqlite cache and JSON/CSV export".
 
 ## F08 — done + committed (2026-06-16)
 
