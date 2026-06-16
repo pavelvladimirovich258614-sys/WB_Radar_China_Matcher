@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F13",
+  "active_feature": "F14",
 
   "features": [
     {
@@ -99,7 +99,7 @@
       "id": "F13",
       "title": "China driver: 1688 image search (логин-сессия)",
       "deps": ["F06", "F11"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

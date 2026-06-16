@@ -1,8 +1,113 @@
 ## Активная фича
 
-F13 — China driver: 1688 image search (логин-сессия) (status: todo) — следующая. **F13 НЕ начат**.
+F14 — China driver: Taobao 拍立淘 (опц., логин) (status: todo).
 
 ## Журнал
+
+### F13 — done (2026-06-16)
+
+- **Саб-агенты**: эстафета 1→2→3→4→5 (PLAN → BUILD module+errors → BUILD Playwright flow+parser → TESTS/REGRESSION → REVIEW/DOCS/FINALIZE).
+- **Файлы**:
+  - `matcher/china/s1688.py` — драйвер 1688 image search:
+    - иерархия ошибок `S1688SearchError` → `S1688CaptchaError`, `S1688LoginRequiredError`, `S1688NoResultsError`;
+    - чистые функции `is_captcha_html`, `is_login_required_html`, `is_empty_results_html`, `normalize_candidate_url`, `parse_results_html`;
+    - `S1688ImageSearchDriver` с `search_by_image`, `close`, `__enter__/__exit__`;
+    - кэш `Storage` namespace `"1688:image_search"`, ключ `sha256(image_bytes) + max_results`;
+    - Playwright flow через `BrowserManager.new_page(site="1688")`, upload `input[type=file]`, fallback на кнопку, wait, detect_captcha/login, parse;
+  - `matcher/china/__init__.py` — ре-экспорт `S1688ImageSearchDriver`, ошибок, хелперов;
+  - `fixtures/s1688_search_results.html`, `s1688_captcha.html`, `s1688_login.html`, `s1688_empty.html`;
+  - `tests/test_s1688_driver.py` — 21 не-live тест + 1 live-gated тест.
+- **Ручной логин перед live**:
+  - создать сессию: `BrowserManager().manual_login("1688", url="https://www.1688.com")`;
+  - войти в видимом окне, решить капчу руками, нажать Enter;
+  - сессия сохранится в `sessions/1688/`;
+  - затем: `$env:S1688_LIVE="1"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_s1688_driver.py -s`.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **291 passed, 1 skipped, 10 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F13);
+  - live-тест без `S1688_LIVE=1` корректно skip'ается (1 skipped).
+- **Security/review PASS**:
+  - в бизнес-логике нет `pass`/`TODO`/`реализуем позже` (только легитимные control-flow `pass`);
+  - нет stealth/anti-bot bypass/captcha_solver;
+  - captcha/login обрабатываются исключениями, не обходятся;
+  - browser ownership: `close()` закрывает только созданный драйвером `BrowserManager`;
+  - `sessions/`, `output/`, `*.db`, `.venv/` не tracked.
+- **Следующий шаг**: F14 — Taobao image search.
+
+## F13-SA4 — review (2026-06-16)
+
+- **Задача**: TESTS / FIXTURES / LIVE GATED / REGRESSION.
+- **Код не изменялся**: `matcher/china/s1688.py` и `matcher/china/__init__.py` оставлены без изменений (зона ответственности саб-агента 3).
+- **tests/test_s1688_driver.py** — финальная полировка тестов:
+  - Добавлены/обновлены контрактные тесты парсера:
+    - `test_parse_results_finds_candidates` — ≥4 кандидата, проверка `site/title/url/thumb_url/price/has_video/video_url`, URL абсолютные.
+    - `test_parse_results_deduplicates_by_url` — дедупликация по URL.
+    - `test_parse_results_absolute_and_protocol_relative_urls` — относительные и protocol-relative URL нормализуются в абсолютные `https://`.
+    - `test_normalize_candidate_url_variants` — параметризованная проверка нормализации относительных/protocol-relative/абсолютных URL.
+    - `test_parse_results_respects_max_results` + `test_parse_results_max_results_zero_returns_empty` — ограничение `max_results`.
+    - `test_parse_results_detects_captcha` → `S1688CaptchaError`; `test_parse_results_detects_login` → `S1688LoginRequiredError`; `test_parse_results_empty` → `S1688NoResultsError`; `test_parse_results_no_cards_raises_no_results`.
+  - Усилены тесты `search_by_image` без сети:
+    - `test_driver_search_by_image_missing_file` → `S1688SearchError("Image not found")`.
+    - `test_driver_search_by_image_fake_browser` — fake `BrowserManager`/page возвращает HTML fixture → `list[Candidate]`.
+    - `test_driver_search_by_image_fake_browser_login/empty/captcha/captcha_after_upload` — специальные ошибки при соответствующем content.
+    - `test_driver_search_by_image_fake_browser_no_input_raises` → `S1688SearchError("upload input not found")`.
+    - `test_driver_search_by_image_fake_browser_falls_back_to_button_click` — fallback на кнопку протестирован.
+  - Cache:
+    - `test_driver_uses_cache_and_skips_browser` — `use_cache=True` не вызывает `_upload_and_search` (проверка `assert_not_called`).
+    - `test_driver_use_cache_false_refetches` — `use_cache=False` игнорирует stale cache и делает ровно один вызов `_upload_and_search`.
+    - `test_driver_cache_returns_candidates_without_parsing` — cache hit возвращает кандидатов и не вызывает `parse_results_html`.
+- **Live-тест**:
+  - Один live-тест `test_search_by_image_live` в `tests/test_s1688_driver.py`.
+  - Маркировка: `@pytest.mark.live` + `@pytest.mark.skipif(not os.environ.get("S1688_LIVE"), reason="S1688_LIVE=1 required")`.
+  - Gating: env-флаг `S1688_LIVE=1`.
+  - Проверка persistent-сессии `sessions/1688/` (skip, если отсутствует или пустая).
+  - При captcha/login/anti-bot — `pytest.skip("1688 requires login/captcha")`, а не fail.
+- **Regression**:
+  - `pytest -m "not live" -q` → **291 passed, 1 skipped, 10 deselected** (было 282 passed, 1 skipped, 10 deselected; +9 новых не-live тестов F13-SA4).
+  - F00–F12 не сломаны.
+- **Без заглушек**: в бизнес-логике нет `pass`/`TODO`.
+- **Security**: captcha/login не обходятся; секреты/сессии не трогались; `output/`, `sessions/`, `*.db` в `.gitignore`.
+
+- **Что остаётся саб-агенту 5 (REVIEW / DOCS / FINALIZE)**:
+  - code review `matcher/china/s1688.py` и `tests/test_s1688_driver.py`;
+  - документирование ручного flow создания `sessions/1688` через `core.browser.BrowserManager.manual_login` перед live-тестом;
+  - финальная проверка `pytest -m "not live" -q` и live-gating;
+  - обновление `session-handoff.md` и коммит F13.
+
+## F13-SA2 — in_progress (2026-06-16)
+
+- **matcher/china/s1688.py** — создан драйвер 1688:
+  - Иерархия ошибок: `S1688SearchError`, `S1688CaptchaError`, `S1688LoginRequiredError`, `S1688NoResultsError`.
+  - Чистые функции: `is_captcha_html`, `is_login_required_html`, `is_empty_results_html`, `normalize_candidate_url`, `parse_results_html`.
+  - `S1688ImageSearchDriver`: `search_by_image`, `close`, `__enter__`, `__exit__`.
+  - Cache: `Storage`, namespace `"1688:image_search"`, ключ `sha256(image_bytes) + max_results`.
+  - Playwright flow: `new_page(site="1688")`, `_detect_page_issues`, upload `input[type=file]`, wait, parse.
+  - Обработка ошибок: captcha/login/no-results/missing-file/upload-not-found.
+
+- **matcher/china/__init__.py** — ре-экспорт 1688-сущностей.
+
+- **Фикстуры**:
+  - `fixtures/s1688_search_results.html` (4 карточки + 1 дубликат + 1 phone-ссылка).
+  - `fixtures/s1688_captcha.html`.
+  - `fixtures/s1688_login.html`.
+  - `fixtures/s1688_empty.html`.
+
+- **tests/test_s1688_driver.py** — 21 не-live тест:
+  - парсинг выдачи, дедупликация, max_results;
+  - детекция captcha/login/empty/no-cards;
+  - `normalize_candidate_url`;
+  - missing file, cache hit/miss, fake-browser search, captcha via `detect_captcha`;
+  - close owned browser, context manager.
+
+- **Прогон**: `pytest -m "not live" -q` → **278 passed, 1 skipped, 10 deselected**.
+- F00–F12 не сломаны.
+- Без заглушек в бизнес-логике (только легитимные `pass` в телах exception-классов).
+- Security: captcha/login не обходятся; секреты не трогались; `output/`, `sessions/`, `*.db` в `.gitignore`.
+
+- **Что остаётся саб-агенту 3 (BUILD / PLAYWRIGHT FLOW + PARSER)**:
+  - уточнить реальные селекторы 1688 picture-search;
+  - доработать парсер под живую выдачу при необходимости;
+  - live-смоук с ручным логином/сессией.
 
 ## F12 — done + committed (2026-06-16)
 
