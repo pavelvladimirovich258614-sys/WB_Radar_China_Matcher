@@ -1,19 +1,20 @@
 # Session Handoff — WB Radar & China Matcher
 
-## SESSION-CLOSE-04 (2026-06-16) — F10 built, awaiting commit
+## SESSION-CLOSE-05 (2026-06-16) — F10 committed
 
-- **Последняя выполненная фича: F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (status: done, НЕ закоммичена — ждёт команды пользователя).
-- **Последняя закоммиченная фича: F08 — LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный** (status: done).
+- **Последняя закоммиченная фича: F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (status: done).
+  - Коммит: `1432b34` — "F10: add sqlite cache and export storage" (5 файлов, +594/-23).
+- **Предыдущий коммит: F08 — LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный** (status: done).
 - **F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)** — **deferred/skipped** (не реализован, не коммичен).
 - **Активная фича: F11 — Input resolver: артикул/ссылка/фото -> query image** (status: todo, НЕ начат).
 - **F00–F10** подтверждены done.
 
 ## VCS
 
-- **F10 НЕ закоммичен.** Изменения в working tree:
-  - `core/storage.py` — sqlite cache + JSON/CSV export.
-  - `tests/test_storage.py` — 24 не-live контрактных теста.
-- Последний коммит: `d4830df` — "F08: add ZAI, Groq, and Ollama LLM providers" (12 файлов, +1060/-57).
+- **F10 закоммичен.** В working tree нет изменений F10.
+- Последние коммиты:
+  - `1432b34` — F10: add sqlite cache and export storage (5 файлов, +594/-23)
+  - `d4830df` — F08: add ZAI, Groq, and Ollama LLM providers
 
 ## Что сделано в F10
 
@@ -59,6 +60,6 @@ F09 (ChatGPT-web) — опциональная фича. Она нестабил
 - SESSION-START-04: восстановление + подготовка к F08.
 - F08: done + committed.
 - F09: deferred.
-- F10: done, не закоммичен (ожидает команды пользователя).
+- F10: done + committed.
 
 (End of file)

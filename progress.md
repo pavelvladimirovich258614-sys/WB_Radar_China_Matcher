@@ -21,7 +21,7 @@ F11 — Input resolver: артикул/ссылка/фото -> query image (sta
 - **Прогон**: `pytest -m "not live" -q` → **223 passed, 8 deselected** (было 199 passed; +24 новых не-live теста storage). F00–F08 не сломаны.
 - **Без заглушек**: нет `pass`/`TODO` в бизнес-логике (только легитимные `pass` в телах exception-классов).
 - **Security**: секреты не трогались; `.env`/`sessions/`/`output/`/`*.db` в `.gitignore`.
-- **F10 НЕ закоммичен** — коммит по команде пользователя вида "F10: add sqlite cache and JSON/CSV export".
+- **F10 зафиксирован в git** — коммит **`1432b34`** "F10: add sqlite cache and export storage" (5 файлов, +594/-23: `core/storage.py`, `tests/test_storage.py`, `progress.md`, `feature_list.json`, `session-handoff.md`).
 
 ## F08 — done + committed (2026-06-16)
 
