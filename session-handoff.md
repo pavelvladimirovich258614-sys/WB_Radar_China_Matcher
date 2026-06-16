@@ -46,6 +46,7 @@ F09 (ChatGPT-web) — опциональная фича. Она нестабил
 - WB live может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту не обходить.
 - ChatGPT-web не реализован и отложен.
 - 1 skipped тест в F11 (`test_resolve_local_webp`): Pillow в текущем venv не поддерживает WebP (`Image.registered_extensions().get(".webp")` is None). Это platform-specific ограничение сборки Pillow, не баг кода.
+- F11-SMOKE-01 пройден: локальная PNG → `output/query.jpg` JPEG RGB. Smoke-файл удалён, `output/query.jpg` не tracked.
 
 ## Команды проверки
 
