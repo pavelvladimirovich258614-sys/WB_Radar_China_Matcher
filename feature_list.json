@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F12",
+  "active_feature": "F13",
 
   "features": [
     {
@@ -92,7 +92,7 @@
       "id": "F12",
       "title": "China driver: Alibaba.com image search (дефолт, без логина)",
       "deps": ["F06", "F11"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

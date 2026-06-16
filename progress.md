@@ -1,8 +1,27 @@
 ## Активная фича
 
-F12 — China driver: Alibaba.com image search (дефолт, без логина) (status: todo) — следующая. **F12 НЕ начат** (ждём «ОК F12» от пользователя).
+F13 — China driver: 1688 image search (логин-сессия) (status: todo) — следующая. **F13 НЕ начат**.
 
 ## Журнал
+
+## F12 — done + committed (2026-06-16)
+
+Реализовано эстафетой из 5 саб-агентов (PLAN → BUILD module+errors → BUILD Playwright flow+parser → TESTS → REVIEW/DOCS). **Закоммичено** — коммит F12.
+
+- **matcher/china/__init__.py** — публичный API пакета `ChinaSearchDriver`, `AlibabaImageSearchDriver`, ошибки, `parse_results_html`.
+- **matcher/china/base.py** — `ChinaSearchDriver` как `typing.Protocol` с `search_by_image(image_path, *, max_results=None, use_cache=True) -> list[Candidate]`.
+- **matcher/china/alibaba.py** — Alibaba image-search driver:
+  - `AlibabaSearchError`, `AlibabaCaptchaError`, `AlibabaLoginRequiredError`, `AlibabaNoResultsError`.
+  - `parse_results_html(html)` — чистая функция без сети, парсит карточки стандартной библиотекой.
+  - `AlibabaImageSearchDriver`: `search_by_image()` → кэш `Storage`, Alibaba picture search, загрузка `input[type=file]`, детекция captcha/login, возврат до `max_candidates` кандидатов.
+- **fixtures/** — `alibaba_search_results.html`, `alibaba_captcha.html`, `alibaba_login.html`, `alibaba_empty.html`, `dummy_query.jpg`.
+- **tests/test_alibaba_driver.py** — 14 тестов (13 passed, 1 deselected live):
+  - парсинг выдачи, captcha/login/no-results, `max_results`, missing file, cache hit/miss, close owned browser.
+- **Прогон**: `pytest -m "not live" -q` → **257 passed, 1 skipped, 9 deselected**.
+- **Skip**: WebP/Pillow skip из F11 — platform-specific, не баг F12.
+- **Security**: captcha/login не обходятся; секреты/сессии не трогались; `output/`, `sessions/`, `*.db` в `.gitignore`.
+- **Live-команда Alibaba**: `$env:ALIBABA_LIVE="1"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_alibaba_driver.py -s`.
+- **Следующий шаг**: F13 — 1688 image search (логин-сессия). **F13 не начат**.
 
 ## F11 — done (2026-06-16)
 
