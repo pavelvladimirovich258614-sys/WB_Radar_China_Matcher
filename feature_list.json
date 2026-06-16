@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F07",
+  "active_feature": "F08",
 
   "features": [
     {
@@ -57,7 +57,7 @@
       "id": "F07",
       "title": "LLM слой: base + OpenRouter",
       "deps": ["F01"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

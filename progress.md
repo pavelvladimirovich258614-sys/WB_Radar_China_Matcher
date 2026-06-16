@@ -1,8 +1,26 @@
 ## Активная фича
 
-F07 — LLM слой: base + OpenRouter (status: todo) — следующая. **F07 НЕ начат** (ждём «ОК F07» от пользователя).
+F08 — LLM провайдеры: Z.AI/Groq/Ollama (status: todo) — следующая. **F08 НЕ начат** (ждём «ОК F08» от пользователя).
 
 ## Журнал
+
+## F07 — done (2026-06-16)
+
+Реализовано эстафетой из 5 саб-агентов (PLAN → BUILD → TESTS → REVIEW → DOCS).
+
+- **core/llm/base.py** — `LLMProvider(ABC)` с `@abstractmethod complete(messages,**kw)->str` / `@abstractmethod close()->None`, `__enter__/__exit__` (контекст-менеджер зовёт close), и **конкретным template-method `complete_json(messages, schema=None, *, json_retries=None, **kw)->dict`** с ретраем на битом JSON: на каждой попытке зовёт `complete`, парсит через `extract_json`; если не dict — добавляет corrective hint ("not valid JSON...") и ретраит; если dict, но не хватает ключей из `schema["required"]` — добавляет hint ("missing required keys...") и ретраит; после исчерпания попыток → `LLMJSONError`. Hints добавляются в локальную копию messages (caller's list не мутируется). По умолчанию `DEFAULT_JSON_RETRIES=3`.
+- **`extract_json(text)->object|None`** — 4 стратегии: raw `json.loads`, fenced ```json/```, первая `{...}`, первый массив `[...]`; `None` для пустого/не-JSON.
+- **Иерархия исключений**: `LLMError` → `LLMAuthError` / `LLMRequestError` / `LLMJSONError` (все в `__all__`).
+- **core/llm/openrouter.py** — `OpenRouterProvider(LLMProvider)`: `httpx.Client` POST на `https://openrouter.ai/api/v1/chat/completions`; **ключ из `settings.openrouter_api_key`** (repr=False, НИКОГДА не логируется, НИКОГДА не попадает в exception-сообщения — только HTTP status/transport-error repr); модель/температура из `settings.llm`; headers Authorization/Content-Type/HTTP-Referer/X-Title; DI (`settings=None`→default_settings, `client=None`→создаёт httpx.Client и владеет им, иначе не закрывает injected). **Status-mapping**: 401/403→`LLMAuthError`, 429/5xx/transport(`httpx.HTTPError`)/не-JSON-body/сломанная-структура→`LLMRequestError`, прочие non-200→`LLMRequestError`. `complete_json` унаследован из base. Если ключ не задан → `LLMAuthError` в конструкторе.
+- **core/llm/__init__.py** — `get_provider(name=None)->LLMProvider`: `None`→`settings.llm.provider`; `"openrouter"`→`OpenRouterProvider()`; неизвестное имя → `LLMError` (вендор-агностик). Ре-экспортирует все исключения, base-класс и провайдер.
+- **Тесты (46 всего)**: `tests/test_llm_base.py` — 22 теста (extract_json 7 кейсов; complete_json success/fenced/retry/schema-ok/schema-missing/non-dict/propagation-LlmRequest/propagation-LlmAuth/exhaustion/retries=1; abstractness; ctx manager; constant). `tests/test_llm_openrouter.py` — 24 теста (complete URL/headers/payload/model-temperature/kwarg-forwarding; status 200/401/403/429/500/418; transport error; broken-choices; missing-choices; non-JSON body; key-not-in-exception; key-from-settings-not-config-yaml; close ownership; `_json_retries`=3; inherited complete_json; get_provider openrouter/None/unknown) — все на **FakeClient/FakeResponse** (без сети), плюс **1 `@pytest.mark.live` test_openrouter_complete_live** (гейт `OPENROUTER_API_KEY` env, skip без ключа).
+- **Прогон**: `pytest -m "not live" -q` → **136 passed, 5 deselected** (91 был до F07 + 45 новых не-live = 136).
+- **Импорт-чек**: `from core.llm import get_provider; from core.llm.base import LLMProvider` → "llm ok".
+- **F03–F06 не сломаны**: `import core, matcher, harvest, gui; from core.wb_public import WBPublic; from core.browser import BrowserManager` → "f03-f06 ok".
+- **Безопасность**: `config.yaml` НЕ содержит api_key (только provider/model/temperature); ключи только в `.env`/ENV через `settings.openrouter_api_key`; `.env.example` имеет пустой `OPENROUTER_API_KEY=` плейсхолдер. Ключ не в repr, не в logger, не в exception-текстах.
+- **core/llm/ содержит ТОЛЬКО** `base.py`, `openrouter.py`, `__init__.py` — файлов zai.py/groq.py/ollama.py НЕТ (**F08 не начат**).
+- Заглушек `pass`/`TODO`/"implement later"/"stub" НЕТ (только легитимные `pass` в телах exception-классов, `except: pass` control-flow в extract_json, и `def close(self): pass` / `with ...: pass` в test-doubles).
+- Следующий: F08 (LLM провайдеры: Z.AI/GLM, Groq, Ollama локальный).
 
 ## SESSION-START-03-FIX (2026-06-16) — git-fix: track empty project packages
 
