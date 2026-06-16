@@ -8,7 +8,10 @@ from core.llm.base import (
     LLMProvider,
     LLMRequestError,
 )
+from core.llm.groq import GroqProvider
+from core.llm.ollama import OllamaProvider
 from core.llm.openrouter import OpenRouterProvider
+from core.llm.zai import ZAIProvider
 
 
 def get_provider(name: str | None = None) -> LLMProvider:
@@ -17,7 +20,13 @@ def get_provider(name: str | None = None) -> LLMProvider:
     normalized = str(name).strip().lower()
     if normalized == "openrouter":
         return OpenRouterProvider()
-    raise LLMError(f"unknown LLM provider: {name!r} (not implemented yet)")
+    if normalized in ("zai", "z.ai", "glm"):
+        return ZAIProvider()
+    if normalized == "groq":
+        return GroqProvider()
+    if normalized == "ollama":
+        return OllamaProvider()
+    raise LLMError(f"unknown LLM provider: {name!r}")
 
 
 __all__ = [
@@ -28,4 +37,7 @@ __all__ = [
     "LLMRequestError",
     "LLMJSONError",
     "OpenRouterProvider",
+    "ZAIProvider",
+    "GroqProvider",
+    "OllamaProvider",
 ]

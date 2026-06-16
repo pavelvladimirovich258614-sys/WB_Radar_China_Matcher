@@ -1,8 +1,28 @@
 ## Активная фича
 
-F08 — LLM провайдеры: Z.AI/Groq/Ollama (status: todo) — следующая. **F08 НЕ начат** (ждём «ОК F08» от пользователя).
+F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия) (status: todo) — следующая. **F09 НЕ начат** (ждём решения пользователя: F09 или пропуск).
 
 ## Журнал
+
+## F08 — done (2026-06-16)
+
+Реализовано эстафетой из 5 саб-агентов (PLAN → BUILD ZAI+Groq → BUILD Ollama+routing → TESTS → REVIEW/DOCS).
+
+- **core/llm/openai_compat.py** — общий базовый класс `OpenAICompatProvider(LLMProvider)` для OpenAI-compatible провайдеров. Содержит httpx POST, status mapping (401/403→`LLMAuthError`, 429/5xx/transport→`LLMRequestError`), парсинг `choices[0].message.content`, DI `settings`/`client`/`api_key`, timeout. Ключ не логируется и не попадает в exception-сообщения.
+- **core/llm/zai.py** — `ZAIProvider(OpenAICompatProvider)`, endpoint `https://api.z.ai/v1/chat/completions`, ключ `settings.zai_api_key`, `LLMAuthError` если ключа нет.
+- **core/llm/groq.py** — `GroqProvider(OpenAICompatProvider)`, endpoint `https://api.groq.com/openai/v1/chat/completions`, ключ `settings.groq_api_key`, `LLMAuthError` если ключа нет.
+- **core/llm/ollama.py** — `OllamaProvider(LLMProvider)`, без API-ключа, `base_url` из `settings.ollama_base_url` с дефолтом `http://localhost:11434`, endpoint `/api/chat`, payload `{model, messages, stream: false, options: {temperature}}`, ответ `message.content`. Ошибки → `LLMRequestError`.
+- **core/llm/__init__.py** — `get_provider(name=None)` теперь роутит `openrouter`, `zai`, `z.ai`, `glm`, `groq`, `ollama`. Неизвестный → `LLMError`.
+- **Тесты (64 новых не-live + 3 live)**:
+  - `tests/conftest.py` — общие `FakeResponse`, `FakeClient`, `CONFIG_YAML`.
+  - `tests/test_llm_zai.py` — 22 теста (happy path, URL/payload/headers, kwarg forwarding, ключ из settings не в config.yaml, 401/403/429/500/418/transport, битая структура, ключ не в exception, close DI, inherited complete_json, routing alias'ы `zai`/`z.ai`/`glm`, live).
+  - `tests/test_llm_groq.py` — 21 тест (аналогично ZAI, без alias'ей, live).
+  - `tests/test_llm_ollama.py` — 21 тест (happy path, `/api/chat`, `stream: false`, `options.temperature`, custom/default base_url, kwarg forwarding, 400/404/429/500/418/transport, битая структура, close DI, inherited complete_json, routing, live с reachability-check).
+- **Прогон**: `pytest -m "not live" -q` → **199 passed, 8 deselected** (было 136 passed, 5 deselected; +63 новых не-live теста + 3 новых live deselected). F00–F07 не сломаны.
+- **Импорт-чеки**: `from core.llm.zai import ZAIProvider; from core.llm.groq import GroqProvider; from core.llm.ollama import OllamaProvider` → "llm providers ok"; `import core, matcher, harvest, gui; from core.wb_public import WBPublic; from core.browser import BrowserManager` → "f03-f06 ok".
+- **Security (PASS)**: ключи читаются только из `settings.zai_api_key`/`settings.groq_api_key`/`settings.ollama_base_url` (ENV/.env, repr=False); не логируются; не в `config.yaml`; `.env` не tracked.
+- **Без заглушек**: нет `pass`/`TODO` в новой бизнес-логике (только легитимные control-flow/exception-body `pass` в `base.py` и `OpenAICompatProvider._request_payload` — его тело тоже не пустое, там payload формируется).
+- **F09 не начат**, ChatGPT-web не реализован, GUI не тронут, WB-клиенты и BrowserManager не тронуты.
 
 ## SESSION-START-04 (2026-06-16) — восстановление контекста + подготовка к F08
 

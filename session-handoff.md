@@ -1,67 +1,48 @@
 # Session Handoff — WB Radar & China Matcher
 
-## SESSION-START-04 (2026-06-16) — текущее состояние
+## SESSION-CLOSE-03 (2026-06-16) — F08 done
 
-- **Активная фича: F08** (status: todo). **F08 НЕ начат** — ждём «ОК F08» от пользователя.
-- **F00–F07** подтверждены done, код на месте, тесты зелёные.
-- **Последние коммиты:** `7e7d7fe docs: close session after F07`, `2dcd3c1 docs: record F07 handoff before F08`, `5a73f5c F07: add LLM base layer and OpenRouter provider`, и далее F00–F06.
-- **Результат проверки:** `pytest -m "not live" -q` → **136 passed, 5 deselected**; импорт-чеки config/models/wb public/browser/llm — все ok.
-- **Security:** `.env`/`sessions/`/`output/`/`.venv/`/`.hermes/` не tracked; ключей в коде нет; `config.yaml` без секретов; `.env.example` — плейсхолдеры; `.gitignore` дополнен `.hermes/`.
-- **Следующий шаг:** получить «ОК F08», затем реализовать `core/llm/zai.py`, `core/llm/groq.py`, `core/llm/ollama.py` с контрактными тестами и обновить `get_provider`.
-
-## Состояние на закрытие сессии (2026-06-16, SESSION-CLOSE-02 после F07)
-
-- Последняя работа в сессии: **F07 — LLM слой: base + OpenRouter** (status: done, закоммичен). Сессия закрыта.
-- Выполнено: **F00, F01, F02, F03, F04, F05, F06, F06-FIX-01, F07** — все done (см. feature_list.json).
-- **active_feature = F08 (status: todo). F08 НЕ начат** — ждём «ОК F08» от пользователя. Завязки F08 = [F07] (done).
-- **VCS: git инициализирован.** Коммиты:
-  - `a88980b` — F00-F06: complete foundation, WB clients, and browser base (29 файлов, +3718).
-  - `9552334` — docs: record handoff before F07.
-  - `f2b581f` — F00: track empty project packages (gui/harvest/matcher `__init__.py`).
-  - `61da29d` — docs: record package tracking fix before F07.
-  - **`5a73f5c` — F07: add LLM base layer and OpenRouter provider** (8 файлов, +815/-21) — **F07 зафиксирован.**
-- Файлы F07 в коммите `5a73f5c`: `core/llm/base.py`, `core/llm/openrouter.py`, `core/llm/__init__.py`, `tests/test_llm_base.py`, `tests/test_llm_openrouter.py`, `progress.md`, `feature_list.json`, `session-handoff.md`. Секретов нет (`.env`/sessions/output/.venv/.hermes/__pycache__ не добавлены).
-
-## Что было сделано в F07
-
-- **core/llm/base.py**: `LLMProvider(ABC)` (abstract `complete`/`close`, ctx-manager) + конкретный template-method `complete_json(messages, schema, *, json_retries)->dict` с ретраем на битом JSON и corrective hints (локальная копия messages, caller не мутируется); `extract_json` (4 стратегии); иерархия `LLMError → LLMAuthError/LLMRequestError/LLMJSONError`.
-- **core/llm/openrouter.py**: `OpenRouterProvider(LLMProvider)` — httpx POST на `openrouter.ai/api/v1/chat/completions`; ключ из `settings.openrouter_api_key` (repr=False, не логируется, не в exception); DI settings/client; status-mapping 401/403→Auth, 429/5xx/transport/shape→Request; `complete_json` унаследован.
-- **core/llm/__init__.py**: `get_provider(name=None)->LLMProvider` (None→config default; "openrouter"→instance; unknown→LLMError) + ре-экспорты.
-- **Тесты (46)**: `test_llm_base.py` (22), `test_llm_openrouter.py` (23 не-live на FakeClient + 1 `@pytest.mark.live` под `OPENROUTER_API_KEY`).
-
-## Что важно знать новому агенту
-
-- **С чего начать завтра:** прочитай AGENTS.md → progress.md → TZ.md (Часть VI, секция F08). Сделать только F08 (LLM провайдеры: Z.AI/GLM, Groq, Ollama локальный). Завязки F08 = [F07] (done). **Старт F08 — только после «ОК F08» от пользователя.**
-- **Первое действие F08:** реализовать `ZaiProvider`/`GroqProvider`/`OllamaProvider` как подклассы `LLMProvider` (переиспользовать `complete_json` из base); добавить ветки в `get_provider` (`__init__.py`); ключи `ZAI_API_KEY`/`GROQ_API_KEY` из settings (ENV), `OLLAMA_BASE_URL` (default `http://localhost:11434`). Тесты на моках httpx; live под `@pytest.mark.live`.
-- **Инвариант:** LLM-провайдер выбирается из config (`settings.llm.provider`) — код не завязан на вендора. Каждый новый провайдер = подкласс `LLMProvider` + ветка в `get_provider`. Ключи только в `.env`/ENV, НЕ в config.yaml, НЕ в exception-сообщениях, НЕ в логах.
+- **Последняя фича: F08 — LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный** (status: done).
+- **F00–F08** подтверждены done; **active_feature = F09** (ChatGPT-web опц., НЕ начат).
+- **Что сделано в F08:**
+  - `core/llm/openai_compat.py` — общий `OpenAICompatProvider(LLMProvider)` для OpenAI-compatible API.
+  - `core/llm/zai.py` — `ZAIProvider`, endpoint `https://api.z.ai/v1/chat/completions`, ключ `ZAI_API_KEY`.
+  - `core/llm/groq.py` — `GroqProvider`, endpoint `https://api.groq.com/openai/v1/chat/completions`, ключ `GROQ_API_KEY`.
+  - `core/llm/ollama.py` — `OllamaProvider`, без ключа, endpoint `{OLLAMA_BASE_URL}/api/chat`, default `http://localhost:11434`.
+  - `core/llm/__init__.py` — `get_provider` роутит `openrouter`, `zai`, `z.ai`, `glm`, `groq`, `ollama`.
+  - `tests/conftest.py` + `tests/test_llm_zai.py` + `tests/test_llm_groq.py` + `tests/test_llm_ollama.py` — контрактные тесты на моках + live-тесты под `@pytest.mark.live`.
+- **Результат проверки:** `pytest -m "not live" -q` → **199 passed, 8 deselected**.
+- **Импорт-чек:** `from core.llm.zai import ZAIProvider; from core.llm.groq import GroqProvider; from core.llm.ollama import OllamaProvider` → "llm providers ok".
+- **Security:** ключи только в `.env`/ENV, не в коде/config.yaml; не логируются; `repr=False`.
 
 ## Known issues (НЕ обходить)
 
-- **WB live = 403** из текущего окружения: card.wb.ru / search.wb.ru / feedbacks отдают 403 (стоп-правило AGENTS.md, п.9.9.6 оферты WB). Не-live тесты на fixtures/wb_*.json зелёные; live-тесты корректно отрабатывают 403 → исключение без выдумки данных. Живые данные получать с разрешённой сети/сессии.
-- **OpenRouter live** требует `OPENROUTER_API_KEY` в окружении: `get_provider()`/`OpenRouterProvider()` читают `settings.openrouter_api_key`; без ключа live-тест skip-ается (`pytest.skip`), а конструктор провайдера в реальном коде поднимет `LLMAuthError`.
-- **retries** трактуется как макс. попыток вкл. первую (3) — и для WB, и для `complete_json` (`DEFAULT_JSON_RETRIES=3`).
-- **basket-хост img_url** — эвристика (vol//144+1); точная корзина валидируется на live.
-- **feedbacks-хост** в config = feedbacks.api.wb.ru (TZ F05 канонический — public-feedbacks.wildberries.ru; смена значения в config.yaml при необходимости).
-
-## Безопасность (закрыто в F06-FIX-01, подтверждено в F07)
-
-- **sanitize_site_name** + `_site_dir` resolve-containment: path traversal по site-имени закрыт (".."→"site", "../evil"→"_evil" и т.д.), покрыто параметризованными тестами. sessions/ гарантированно внутри settings.paths.sessions.
-- **Секреты не в git**: `.env`/`sessions/`/`output/` в .gitignore. `.env.example` — пустой шаблон (вкл. `OPENROUTER_API_KEY=`, `ZAI_API_KEY=`, `GROQ_API_KEY=`, `OLLAMA_BASE_URL=http://localhost:11434`).
-- **config.yaml НЕ содержит ключей**: только `wb`/`matcher`/`llm`(provider/model/temperature)/`proxy`/`paths`. Тест `test_key_from_settings_not_config_yaml` инвариантно проверяет отсутствие `api_key` в config.yaml.
-- **Ключ OpenRouter** не попадает в repr/logger/exception-сообщения — только в заголовок `Authorization: Bearer ...`. Тест `test_key_not_in_exception_message` подтверждает.
+- WB live = 403 из текущего окружения — стоп-правило AGENTS.md.
+- `get_provider("zai")`/`("groq")` без ключа поднимает `LLMAuthError` — это ожидаемое поведение, не баг.
 
 ## Команды проверки
 
-- Тесты (не-live): `.\.venv\Scripts\python.exe -m pytest -m "not live"` → ожидаемо **136 passed, 5 deselected**.
-- Импорт-чек LLM: `.\.venv\Scripts\python.exe -c "from core.llm import get_provider; from core.llm.base import LLMProvider; print('llm ok')"`.
-- Импорт-чек F03–F06: `.\.venv\Scripts\python.exe -c "import core, matcher, harvest, gui; from core.wb_public import WBPublic; from core.browser import BrowserManager; print('f03-f06 ok')"`.
-- Git: `git log --oneline` → последние: `2dcd3c1` (docs F07 handoff), `5a73f5c` (F07), `61da29d`, `f2b581f`, `9552334`, `a88980b`.
-- Live F03: `$env:WB_TEST_NMID="<артикул>"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_detail.py::test_get_detail_live -s`
-- Live F04: `$env:WB_TEST_QUERY="фен"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_search.py::test_search_live -s`
-- Live F05: `$env:WB_TEST_IMTID="<imtId>"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_wb_public_feedbacks.py::test_get_reviews_live -s`
-- Live F06 (сессии): `$env:F06_LIVE=1; .\.venv\Scripts\python.exe -m pytest -m live tests/test_browser.py::test_open_alibaba_and_persist_session_live -s`
-- **Live F07 (OpenRouter)**: `$env:OPENROUTER_API_KEY="sk-or-..."; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_openrouter.py -s`
+- Тесты (не-live): `.\.venv\Scripts\python.exe -m pytest -m "not live" -q` → **199 passed, 8 deselected**.
+- Live ZAI: `$env:ZAI_API_KEY="..."; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_zai.py -s`
+- Live Groq: `$env:GROQ_API_KEY="..."; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_groq.py -s`
+- Live Ollama: `$env:OLLAMA_BASE_URL="http://localhost:11434"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_llm_ollama.py -s`
 
-## Стоп
+## Следующий шаг
 
-Новые фичи не начинать без подтверждения пользователя. **F08 НЕ начат.** Ждём «ОК F08».
+**F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)**. Завязки F09 = [F07, F06] (оба done). **F09 НЕ начат** — жду решения пользователя: выполнить F09 или пропустить.
+
+## История предыдущих сессий
+
+### SESSION-START-04 (2026-06-16) — восстановление контекста + подготовка к F08
+
+- Подтверждено: F00–F07 done; active_feature=F08 (status: todo, НЕ начат).
+- VCS: последние коммиты `7e7d7fe docs: close session after F07`, `2dcd3c1 docs: record F07 handoff before F08`, `5a73f5c F07: add LLM base layer and OpenRouter provider`, etc.
+- Тесты: `pytest -m "not live" -q` → 136 passed, 5 deselected.
+- Security: `.env`/`sessions/`/`output/`/`.venv/`/`.hermes/` не tracked; ключей в коде нет.
+
+### SESSION-CLOSE-02 (2026-06-16) — сессия закрыта после F07
+
+- F07 done: `core/llm/base.py`, `openrouter.py`, `__init__.py`, тесты.
+- active_feature=F08 (todo).
+
+(End of file)

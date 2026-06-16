@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F08",
+  "active_feature": "F09",
 
   "features": [
     {
@@ -64,7 +64,7 @@
       "id": "F08",
       "title": "LLM провайдеры: Z.AI(GLM), Groq, Ollama локальный",
       "deps": ["F07"],
-      "status": "todo"
+      "status": "done"
     },
 
     {
