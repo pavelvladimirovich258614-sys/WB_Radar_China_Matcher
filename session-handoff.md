@@ -1,5 +1,14 @@
 # Session Handoff — WB Radar & China Matcher
 
+## SESSION-START-04 (2026-06-16) — текущее состояние
+
+- **Активная фича: F08** (status: todo). **F08 НЕ начат** — ждём «ОК F08» от пользователя.
+- **F00–F07** подтверждены done, код на месте, тесты зелёные.
+- **Последние коммиты:** `7e7d7fe docs: close session after F07`, `2dcd3c1 docs: record F07 handoff before F08`, `5a73f5c F07: add LLM base layer and OpenRouter provider`, и далее F00–F06.
+- **Результат проверки:** `pytest -m "not live" -q` → **136 passed, 5 deselected**; импорт-чеки config/models/wb public/browser/llm — все ok.
+- **Security:** `.env`/`sessions/`/`output/`/`.venv/`/`.hermes/` не tracked; ключей в коде нет; `config.yaml` без секретов; `.env.example` — плейсхолдеры; `.gitignore` дополнен `.hermes/`.
+- **Следующий шаг:** получить «ОК F08», затем реализовать `core/llm/zai.py`, `core/llm/groq.py`, `core/llm/ollama.py` с контрактными тестами и обновить `get_provider`.
+
 ## Состояние на закрытие сессии (2026-06-16, SESSION-CLOSE-02 после F07)
 
 - Последняя работа в сессии: **F07 — LLM слой: base + OpenRouter** (status: done, закоммичен). Сессия закрыта.

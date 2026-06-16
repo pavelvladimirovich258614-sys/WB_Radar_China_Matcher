@@ -4,6 +4,17 @@ F08 — LLM провайдеры: Z.AI/Groq/Ollama (status: todo) — следу
 
 ## Журнал
 
+## SESSION-START-04 (2026-06-16) — восстановление контекста + подготовка к F08
+
+- Подтверждено: F00–F07 done; active_feature=F08 (status: todo, НЕ начат).
+- Контроль F07: файлы `core/llm/base.py`, `core/llm/openrouter.py`, `core/llm/__init__.py` на месте; `tests/test_llm_base.py`, `tests/test_llm_openrouter.py` на месте. Файлов `core/llm/zai.py`, `core/llm/groq.py`, `core/llm/ollama.py` НЕТ (F08 не начат).
+- VCS: `git log --oneline -8` → `7e7d7fe docs: close session after F07`, `2dcd3c1 docs: record F07 handoff before F08`, `5a73f5c F07: add LLM base layer and OpenRouter provider`, `61da29d docs: record package tracking fix before F07`, `f2b581f F00: track empty project packages`, `9552334 docs: record handoff before F07`, `a88980b F00-F06: complete foundation, WB clients, and browser base`. Working tree чист (untracked `.hermes/`).
+- Security (PASS): `.env`/`sessions/`/`output/`/`.venv/`/`.hermes/` не tracked; API-ключей в коде нет; `config.yaml` без секретов; `.env.example` содержит только пустые плейсхолдеры. В `.gitignore` добавлен `.hermes/`.
+- Тесты: `pytest -m "not live" -q` → **136 passed, 5 deselected** (ориентир совпал).
+- Импорт-чеки: config ok / models ok / wb public ok / browser ok / llm ok.
+- Команда проверки: `.\.venv\Scripts\python.exe -m pytest -m "not live" -q`.
+- Следующий шаг: ждать «ОК F08» от пользователя. **F08 не выполнялся.**
+
 ## SESSION-CLOSE-02 (2026-06-16) — сессия закрыта после F07
 
 - Принято: F07 (LLM слой: base + OpenRouter) — done и закоммичено.
