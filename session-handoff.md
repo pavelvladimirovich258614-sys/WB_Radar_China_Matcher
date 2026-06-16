@@ -1,24 +1,20 @@
 # Session Handoff — WB Radar & China Matcher
 
-## SESSION-CLOSE-06 (2026-06-16) — F11 built, awaiting commit
+## SESSION-CLOSE-07 (2026-06-16) — F11 committed
 
-- **Последняя выполненная фича: F11 — Input resolver: артикул/ссылка/фото -> query image** (status: done, НЕ закоммичена — ждёт команды пользователя).
-- **Последняя закоммиченная фича: F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (status: done).
+- **Последняя закоммиченная фича: F11 — Input resolver: артикул/ссылка/фото -> query image** (status: done).
+  - Коммит: `461daa0` — "F11: add input resolver for WB items and images" (5 файлов, +656/-27).
+- **Предыдущий коммит: F10 — Storage: sqlite-кэш + JSON/CSV экспорт** (status: done).
 - **F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)** — **deferred/skipped**.
 - **Активная фича: F12 — China driver: Alibaba.com image search (дефолт, без логина)** (status: todo, НЕ начат).
 - **F00–F11** подтверждены done.
-- **F09 — LLM провайдер: ChatGPT-web (опц., аккаунт-сессия)** — **deferred/skipped** (не реализован, не коммичен).
-- **Активная фича: F11 — Input resolver: артикул/ссылка/фото -> query image** (status: todo, НЕ начат).
-- **F00–F10** подтверждены done.
 
 ## VCS
 
-- **F11 НЕ закоммичен.** Изменения в working tree:
-  - `matcher/input.py` — Input resolver.
-  - `tests/test_matcher_input.py` — 22 не-live теста (21 passed, 1 skipped WebP).
-- **F10 зафиксирован.**
+- **F11 закоммичен.** В working tree нет изменений F11.
 - Последние коммиты:
-  - `1432b34` — F10: add sqlite cache and export storage (5 файлов, +594/-23)
+  - `461daa0` — F11: add input resolver for WB items and images (5 файлов, +656/-27)
+  - `1432b34` — F10: add sqlite cache and export storage
   - `d4830df` — F08: add ZAI, Groq, and Ollama LLM providers
 
 ## Что сделано в F11
@@ -49,6 +45,7 @@ F09 (ChatGPT-web) — опциональная фича. Она нестабил
 
 - WB live может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту не обходить.
 - ChatGPT-web не реализован и отложен.
+- 1 skipped тест в F11 (`test_resolve_local_webp`): Pillow в текущем venv не поддерживает WebP (`Image.registered_extensions().get(".webp")` is None). Это platform-specific ограничение сборки Pillow, не баг кода.
 
 ## Команды проверки
 
@@ -67,6 +64,6 @@ F09 (ChatGPT-web) — опциональная фича. Она нестабил
 - F08: done + committed.
 - F09: deferred.
 - F10: done + committed.
-- F11: done, не закоммичен (ожидает команды пользователя).
+- F11: done + committed.
 
 (End of file)
