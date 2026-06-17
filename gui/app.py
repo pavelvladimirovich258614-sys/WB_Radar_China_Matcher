@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import webbrowser
 from pathlib import Path
@@ -7,14 +8,24 @@ from typing import Any, Callable, Optional
 
 import flet as ft
 
-from core.models import Candidate, Product
+from core.models import Candidate, Product, VocItem, VoC
+from harvest.discovery import ViralProduct, ViralResult, niche
 from harvest.download import download_videos
+from harvest.hooks import VideoHookSet, generate_hooks
+from harvest.review_video import ReviewVideoItem, get_review_videos
+from harvest.voc import analyze_reviews_voc
 from matcher.input import resolve_input
 
 logger = logging.getLogger(__name__)
 
 MatcherPipeline = Callable[[str | Path], tuple[Product | None, list[Candidate]]]
 Downloader = Callable[[str, int], Any]
+
+DiscoveryService = Callable[[str], ViralResult]
+VoCService = Callable[[int], VoC]
+HooksService = Callable[[int, VoC], VideoHookSet]
+ReviewVideoService = Callable[[int], list[ReviewVideoItem]]
+ToMatcherBridge = Callable[[int], Any]
 
 DEFAULT_THEME = ft.Theme(
     color_scheme_seed=ft.Colors.BLUE_GREY,
@@ -58,13 +69,35 @@ class MatcherChinaController:
         self.results_column: ft.Column | None = None
         self.status_text: ft.Text | None = None
         self.progress_bar: ft.ProgressBar | None = None
-        self.download_all_button: ft.ElevatedButton | None = None
-        self.pick_file_button: ft.ElevatedButton | None = None
-        self.search_button: ft.ElevatedButton | None = None
+        self.download_all_button: ft.Button | None = None
+        self.pick_file_button: ft.Button | None = None
+        self.search_button: ft.Button | None = None
 
         self._last_candidates: list[Candidate] = []
         self._last_product: Product | None = None
         self._selected_file_path: Path | None = None
+
+    def set_input_value(self, value: str) -> None:
+        """Set the matcher input field value (used by the "To Matcher" bridge)."""
+        if self.input_field is not None:
+            self.input_field.value = value
+
+    def focus_input(self) -> None:
+        """Move focus to the matcher input field (best-effort)."""
+        if self.input_field is None:
+            return
+        try:
+            result = self.input_field.focus()
+            if result is not None and hasattr(result, "__await__"):
+                import asyncio
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    # No running event loop in tests; ignore fire-and-forget.
+                    pass
+        except Exception:
+            pass
 
     def _set_status(self, message: str) -> None:
         if self.status_text is not None:
@@ -348,6 +381,400 @@ class MatcherChinaController:
         return tab
 
 
+class DiscoveryWBController:
+    """Controller for the WB discovery tab.
+
+    Keeps UI controls as attributes and accepts fake services for non-live
+    testing.
+    """
+
+    def __init__(
+        self,
+        *,
+        discovery_service: DiscoveryService | None = None,
+        voc_service: VoCService | None = None,
+        hooks_service: HooksService | None = None,
+        review_video_service: ReviewVideoService | None = None,
+        downloader: Downloader | None = None,
+        output_root: Path | str | None = None,
+        to_matcher_bridge: ToMatcherBridge | None = None,
+        on_status: Callable[[str], Any] | None = None,
+    ) -> None:
+        self.discovery_service = discovery_service
+        self.voc_service = voc_service
+        self.hooks_service = hooks_service
+        self.review_video_service = review_video_service
+        self.downloader = downloader
+        self.output_root = output_root
+        self.to_matcher_bridge = to_matcher_bridge
+        self.on_status = on_status
+
+        self.niche_input: ft.TextField | None = None
+        self.search_button: ft.Button | None = None
+        self.results_column: ft.Column | None = None
+        self.status_text: ft.Text | None = None
+        self.progress_bar: ft.ProgressBar | None = None
+        self.detail_column: ft.Column | None = None
+
+        self._last_products: list[ViralProduct] = []
+        self._selected_product: ViralProduct | None = None
+        self._last_voc: VoC | None = None
+        self._last_hooks: VideoHookSet | None = None
+        self._last_videos: list[ReviewVideoItem] = []
+
+    def _set_status(self, message: str) -> None:
+        if self.status_text is not None:
+            self.status_text.value = message
+        if self.on_status is not None:
+            try:
+                self.on_status(message)
+            except Exception:
+                pass
+
+    def _show_progress(self, visible: bool) -> None:
+        if self.progress_bar is not None:
+            self.progress_bar.visible = visible
+
+    def _on_search(self, _event: ft.ControlEvent | None) -> None:
+        query = ""
+        if self.niche_input is not None:
+            query = (self.niche_input.value or "").strip()
+
+        if not query:
+            self._set_status("Введите нишу или запрос")
+            return
+
+        self._run_discovery(query)
+
+    def _run_discovery(self, query: str) -> None:
+        self._set_status("Поиск вирусных товаров...")
+        self._show_progress(True)
+        self._last_products = []
+        self._selected_product = None
+        self._last_voc = None
+        self._last_hooks = None
+        self._last_videos = []
+        if self.results_column is not None:
+            self.results_column.controls.clear()
+        if self.detail_column is not None:
+            self.detail_column.controls.clear()
+
+        try:
+            if self.discovery_service is not None:
+                result = self.discovery_service(query)
+            else:
+                result = _default_discovery_service(query)
+
+            self._last_products = result.products
+            self._render_results(result.products)
+            count = len(result.products)
+            self._set_status(f"Найдено вирусных товаров: {count}")
+        except Exception as exc:
+            logger.exception("Discovery failed")
+            self._set_status(f"Ошибка разведки: {exc}")
+        finally:
+            self._show_progress(False)
+
+    def _render_results(self, products: list[ViralProduct]) -> None:
+        if self.results_column is None:
+            return
+
+        self.results_column.controls.clear()
+        if not products:
+            self.results_column.controls.append(
+                ft.Text("Ничего не найдено", color=ft.Colors.GREY_400)
+            )
+            return
+
+        header = ft.Row(
+            [
+                ft.Text("nmId", weight=ft.FontWeight.W_600, width=80),
+                ft.Text("Название", weight=ft.FontWeight.W_600, expand=True),
+                ft.Text("Бренд", weight=ft.FontWeight.W_600, width=100),
+                ft.Text("Viral", weight=ft.FontWeight.W_600, width=60),
+                ft.Text("Отзывы", weight=ft.FontWeight.W_600, width=70),
+                ft.Text("Рейтинг", weight=ft.FontWeight.W_600, width=60),
+                ft.Text("Действия", weight=ft.FontWeight.W_600, width=90),
+            ],
+            spacing=8,
+        )
+        self.results_column.controls.append(header)
+        self.results_column.controls.append(ft.Divider(height=1, color=ft.Colors.GREY_700))
+
+        for product in products:
+            self.results_column.controls.append(
+                self._build_product_row(product)
+            )
+
+    def _build_product_row(self, product: ViralProduct) -> ft.Row:
+        select_button = ft.Button(
+            "Выбрать",
+            icon=ft.Icons.ARROW_FORWARD,
+            on_click=lambda _e, p=product: self._select_product(p),
+        )
+        return ft.Row(
+            [
+                ft.Text(str(product.nmId), width=80, size=12),
+                ft.Text(
+                    product.name or "—",
+                    expand=True,
+                    size=13,
+                    max_lines=2,
+                    overflow=ft.TextOverflow.ELLIPSIS,
+                ),
+                ft.Text(product.brand or "—", width=100, size=12),
+                ft.Text(f"{product.viral_score:.2f}", width=60, size=12),
+                ft.Text(str(product.feedbacks), width=70, size=12),
+                ft.Text(f"{product.rating:.1f}", width=60, size=12),
+                ft.Container(select_button, width=90),
+            ],
+            spacing=8,
+        )
+
+    def _select_product(self, product: ViralProduct) -> None:
+        self._selected_product = product
+        self._set_status(f"Выбран товар {product.nmId}")
+        if self.detail_column is not None:
+            self.detail_column.controls.clear()
+            self.detail_column.controls.append(
+                ft.Text(
+                    f"{product.name} (nmId {product.nmId})",
+                    weight=ft.FontWeight.W_600,
+                    size=16,
+                )
+            )
+
+        try:
+            self._load_voc(product.nmId)
+            self._load_hooks(product.nmId)
+            self._load_review_videos(product.nmId)
+        except Exception as exc:
+            logger.exception("Product detail loading failed")
+            self._set_status(f"Ошибка загрузки деталей: {exc}")
+
+    def _load_voc(self, nm_id: int) -> None:
+        if self.voc_service is not None:
+            voc = self.voc_service(nm_id)
+        else:
+            voc = _default_voc_service(nm_id)
+        self._last_voc = voc
+        if self.detail_column is None:
+            return
+
+        self.detail_column.controls.append(
+            ft.Text("Боли", weight=ft.FontWeight.W_600)
+        )
+        self.detail_column.controls.extend(
+            self._build_voc_items(voc.боли)
+        )
+        self.detail_column.controls.append(
+            ft.Text("Желания", weight=ft.FontWeight.W_600)
+        )
+        self.detail_column.controls.extend(
+            self._build_voc_items(voc.желания)
+        )
+        self.detail_column.controls.append(
+            ft.Text("Страхи", weight=ft.FontWeight.W_600)
+        )
+        self.detail_column.controls.extend(
+            self._build_voc_items(voc.страхи)
+        )
+
+    def _build_voc_items(self, items: list[VocItem]) -> list[ft.Control]:
+        if not items:
+            return [ft.Text("—", color=ft.Colors.GREY_400, size=12)]
+        return [
+            ft.Text(f"• {item.text} ({item.frequency})", size=12)
+            for item in items
+        ]
+
+    def _load_hooks(self, nm_id: int) -> None:
+        hooks: VideoHookSet
+        if self.hooks_service is not None:
+            hooks = self.hooks_service(nm_id, self._last_voc or VoC())
+        else:
+            hooks = _default_hooks_service(nm_id, self._last_voc or VoC())
+        self._last_hooks = hooks
+        if self.detail_column is None:
+            return
+
+        self.detail_column.controls.append(
+            ft.Text("Хуки", weight=ft.FontWeight.W_600)
+        )
+        for idx, hook in enumerate(hooks.hooks, start=1):
+            self.detail_column.controls.append(
+                ft.Text(f"{idx}. {hook}", size=12)
+            )
+        if hooks.objections:
+            self.detail_column.controls.append(
+                ft.Text("Возражения", weight=ft.FontWeight.W_600)
+            )
+            for objection in hooks.objections:
+                self.detail_column.controls.append(
+                    ft.Text(f"- {objection}", size=12)
+                )
+
+    def _load_review_videos(self, nm_id: int) -> None:
+        if self.review_video_service is not None:
+            videos = self.review_video_service(nm_id)
+        else:
+            videos = _default_review_video_service(nm_id)
+        self._last_videos = videos
+        if self.detail_column is None:
+            return
+
+        self.detail_column.controls.append(
+            ft.Text("Видео из отзывов", weight=ft.FontWeight.W_600)
+        )
+        if not videos:
+            self.detail_column.controls.append(
+                ft.Text("Видеоотзывов не найдено", color=ft.Colors.GREY_400, size=12)
+            )
+            return
+
+        for item in videos:
+            row = ft.Row(
+                [
+                    ft.Text(f"★{item.rating:.0f}", width=40, size=12),
+                    ft.Text(
+                        item.text[:60] or "видео",
+                        expand=True,
+                        size=12,
+                        max_lines=1,
+                        overflow=ft.TextOverflow.ELLIPSIS,
+                    ),
+                    ft.Button(
+                        "Скачать",
+                        icon=ft.Icons.DOWNLOAD,
+                        on_click=lambda _e, url=item.video_url: self._download_video(url, nm_id),
+                    ),
+                ],
+                spacing=8,
+            )
+            self.detail_column.controls.append(row)
+
+    def _download_video(self, url: str, nm_id: int) -> None:
+        self._set_status(f"Скачивание видео для nmId={nm_id}...")
+        self._show_progress(True)
+        try:
+            if self.downloader is not None:
+                asset = self.downloader(url, nm_id)
+                count = 1 if asset is not None else 0
+            else:
+                from harvest.download import download_video
+                asset = download_video(
+                    url, nm_id, "wb_review", output_root=self.output_root
+                )
+                count = 1
+            self._set_status(f"Скачано видео: {count}")
+        except Exception as exc:
+            logger.exception("Review video download failed")
+            self._set_status(f"Ошибка скачивания: {exc}")
+        finally:
+            self._show_progress(False)
+
+    def _on_to_matcher(self, _event: ft.ControlEvent) -> None:
+        if self._selected_product is None:
+            self._set_status("Сначала выберите товар")
+            return
+        nm_id = self._selected_product.nmId
+        if self.to_matcher_bridge is not None:
+            try:
+                self.to_matcher_bridge(nm_id)
+            except Exception as exc:
+                logger.exception("Bridge to matcher failed")
+                self._set_status(f"Ошибка моста в Матчер: {exc}")
+        else:
+            self._set_status("Мост в Матчер не настроен")
+
+    def build_tab(self, page: ft.Page) -> ft.Tab:
+        self.niche_input = ft.TextField(
+            label="Ниша / запрос",
+            hint_text="например: фен для волос",
+            expand=True,
+            on_submit=self._on_search,
+        )
+        self.search_button = ft.Button(
+            "Найти вирусные",
+            icon=ft.Icons.TRENDING_UP,
+            on_click=self._on_search,
+        )
+        self.results_column = ft.Column(
+            spacing=8, scroll=ft.ScrollMode.AUTO, expand=True
+        )
+        self.detail_column = ft.Column(
+            spacing=8, scroll=ft.ScrollMode.AUTO, expand=True
+        )
+        self.detail_column._discovery_controller = self  # type: ignore[attr-defined]
+        self.status_text = ft.Text("Готов к разведке", size=12, color=ft.Colors.GREY_400)
+        self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.BLUE_GREY_200)
+
+        to_matcher_button = ft.Button(
+            "В Матчер",
+            icon=ft.Icons.ARROW_BACK,
+            on_click=self._on_to_matcher,
+        )
+
+        input_row = ft.Row(
+            [self.niche_input, self.search_button],
+            spacing=12,
+        )
+
+        detail_panel = ft.Column(
+            [
+                ft.Row(
+                    [ft.Text("Детали товара", weight=ft.FontWeight.W_600), to_matcher_button],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                self.detail_column,
+            ],
+            expand=True,
+        )
+
+        content = ft.Column(
+            [
+                input_row,
+                self.progress_bar,
+                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Text("Вирусные товары", weight=ft.FontWeight.W_600),
+                self.results_column,
+                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                detail_panel,
+                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                self.status_text,
+            ],
+            spacing=16,
+            expand=True,
+        )
+
+        tab = ft.Tab(label="Разведка WB")
+        tab.content = ft.Container(content=content, padding=16)
+        return tab
+
+
+def _default_discovery_service(query: str) -> ViralResult:
+    return niche(query)
+
+
+def _default_voc_service(nm_id: int) -> VoC:
+    from harvest.reviews import collect_reviews_for_product
+
+    result = collect_reviews_for_product(nm_id, max_count=1000)
+    reviews_data = []
+    if result.output_path and Path(result.output_path).exists():
+        reviews_data = json.loads(Path(result.output_path).read_text(encoding="utf-8"))
+    return analyze_reviews_voc(reviews_data)
+
+
+def _default_hooks_service(nm_id: int, voc: VoC) -> VideoHookSet:
+    return generate_hooks(voc, nm_id=nm_id)
+
+
+def _default_review_video_service(nm_id: int) -> list[ReviewVideoItem]:
+    return get_review_videos(nm_id, max_count=1000)
+
+
 def _open_url(url: str | None) -> None:
     if url:
         webbrowser.open(url)
@@ -426,14 +853,38 @@ def build_matcher_tab(
     matcher_pipeline: MatcherPipeline | None = None,
     downloader: Downloader | None = None,
     output_root: Path | str | None = None,
-) -> ft.Tab:
+) -> tuple[ft.Tab, MatcherChinaController]:
     """Build the China matcher tab with dependency injection for tests."""
     controller = MatcherChinaController(
         matcher_pipeline=matcher_pipeline,
         downloader=downloader,
         output_root=output_root,
     )
-    return controller.build_tab(page)
+    return controller.build_tab(page), controller
+
+
+def build_discovery_tab(
+    page: ft.Page,
+    *,
+    discovery_service: DiscoveryService | None = None,
+    voc_service: VoCService | None = None,
+    hooks_service: HooksService | None = None,
+    review_video_service: ReviewVideoService | None = None,
+    downloader: Downloader | None = None,
+    output_root: Path | str | None = None,
+    to_matcher_bridge: ToMatcherBridge | None = None,
+) -> tuple[ft.Tab, DiscoveryWBController]:
+    """Build the WB discovery tab with dependency injection for tests."""
+    controller = DiscoveryWBController(
+        discovery_service=discovery_service,
+        voc_service=voc_service,
+        hooks_service=hooks_service,
+        review_video_service=review_video_service,
+        downloader=downloader,
+        output_root=output_root,
+        to_matcher_bridge=to_matcher_bridge,
+    )
+    return controller.build_tab(page), controller
 
 
 def create_app(
@@ -442,6 +893,11 @@ def create_app(
     matcher_pipeline: MatcherPipeline | None = None,
     downloader: Downloader | None = None,
     output_root: Path | str | None = None,
+    discovery_service: DiscoveryService | None = None,
+    voc_service: VoCService | None = None,
+    hooks_service: HooksService | None = None,
+    review_video_service: ReviewVideoService | None = None,
+    matcher_controller: MatcherChinaController | None = None,
 ) -> ft.Tabs:
     """Create the full application with the China matcher tab as default."""
     page.title = "WB Radar & China Matcher"
@@ -449,16 +905,33 @@ def create_app(
     page.theme = DEFAULT_THEME
     page.bgcolor = ft.Colors.GREY_900
 
-    matcher_tab = build_matcher_tab(
+    matcher_tab, matcher_ctrl = build_matcher_tab(
         page,
         matcher_pipeline=matcher_pipeline,
         downloader=downloader,
         output_root=output_root,
     )
+    if matcher_controller is not None:
+        matcher_ctrl = matcher_controller
+
+    def bridge_to_matcher(nm_id: int) -> None:
+        matcher_ctrl.set_input_value(str(nm_id))
+        matcher_ctrl.focus_input()
+
+    discovery_tab, _discovery_ctrl = build_discovery_tab(
+        page,
+        discovery_service=discovery_service,
+        voc_service=voc_service,
+        hooks_service=hooks_service,
+        review_video_service=review_video_service,
+        downloader=downloader,
+        output_root=output_root,
+        to_matcher_bridge=bridge_to_matcher,
+    )
 
     tabs = ft.Tabs(
-        content=ft.Column([matcher_tab], expand=True),
-        length=1,
+        content=ft.Column([matcher_tab, discovery_tab], expand=True),
+        length=2,
         selected_index=0,
         animation_duration=200,
         expand=True,

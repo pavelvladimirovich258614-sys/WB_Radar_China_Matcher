@@ -79,7 +79,7 @@ def test_build_matcher_tab_with_fake_pipeline() -> None:
         called_with.append(query)
         return _product(), [_candidate("alibaba", "Фен A", 0.91, 1200.0)]
 
-    tab = build_matcher_tab(page, matcher_pipeline=fake_pipeline)
+    tab, controller = build_matcher_tab(page, matcher_pipeline=fake_pipeline)
 
     assert tab.label == "Матчер China"
     assert called_with == []
@@ -90,8 +90,13 @@ def test_create_app_first_tab_is_matcher() -> None:
     tabs = create_app(page)
 
     assert page.theme_mode == ft.ThemeMode.DARK
-    assert len(tabs.content.controls) == 1
-    assert tabs.content.controls[0].label == "Матчер China"
+    assert tabs.length == 2
+    assert tabs.selected_index == 0
+    content = tabs.content
+    assert content is not None
+    assert len(content.controls) == 2
+    assert content.controls[0].label == "Матчер China"
+    assert content.controls[1].label == "Разведка WB"
     assert tabs.selected_index == 0
 
 

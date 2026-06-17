@@ -1,8 +1,46 @@
 ## Активная фича
 
-F25 — GUI вкладка Разведка WB + мост в Матчер (status: todo). Завязки F20/F22/F23/F17 done. F25 не начинался.
+F26 — GUI настройки: провайдеры LLM/прокси/логины (status: todo). Завязки F08/F06 done. F26 не начинался.
 
 ## Журнал
+
+### F25 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `gui/app.py` (расширен):
+    - `DiscoveryWBController` — контроллер вкладки "Разведка WB" с dependency injection (`discovery_service`, `voc_service`, `hooks_service`, `review_video_service`, `downloader`, `to_matcher_bridge`);
+    - `build_discovery_tab(...)` — возвращает `(Tab, DiscoveryWBController)` для тестов;
+    - `build_matcher_tab(...)` теперь возвращает `(Tab, MatcherChinaController)`;
+    - `MatcherChinaController` дополнен методами `set_input_value()` и `focus_input()` для моста "В Матчер";
+    - `create_app(...)` теперь создаёт две вкладки: "Матчер China" (первая, `selected_index=0`) и "Разведка WB";
+    - внутренняя функция `bridge_to_matcher(nm_id)` заполняет поле ввода первой вкладки;
+    - UI "Разведка WB": поле ниши, кнопка "Найти вирусные", таблица вирусных товаров (nmId/name/brand/viral_score/feedbacks/rating/"Выбрать"), панель деталей с VoC (боли/желания/страхи), хуками, возражениями, видео из отзывов, кнопкой "В Матчер";
+    - default services: `_default_discovery_service` → `harvest.discovery.niche`, `_default_voc_service` → сбор отзывов + `analyze_reviews_voc`, `_default_hooks_service` → `generate_hooks`, `_default_review_video_service` → `get_review_videos`; не вызываются в обычных тестах;
+    - безопасная обработка пустой ниши, ошибок discovery/voc/hooks/review_video, UI не падает.
+  - `tests/test_gui_discovery.py` — 9 не-live тестов:
+    - контроллер и вкладка создаются;
+    - `create_app` создаёт 2 вкладки, первая — "Матчер China";
+    - fake discovery вызывается и результаты отображаются;
+    - viral_score отображается;
+    - пустая ниша → статус;
+    - ошибка discovery не падает;
+    - выбор товара загружает VoC/хуки/видео (fake services);
+    - кнопка "В Матчер" через bridge заполняет поле первой вкладки;
+    - public API import check.
+  - `tests/test_gui_matcher.py` — обновлён под новый возврат `build_matcher_tab`/`create_app` (2 вкладки).
+- **Тесты**:
+  - `pytest -m "not live" -q` → **589 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F25);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F24 не сломаны.
+- **Импорт-чек F25**: `from gui.app import create_app, build_matcher_tab, build_discovery_tab` → **gui discovery ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети, без реального браузера и без реального LLM (fake services);
+  - F26/F27/F28 не начаты;
+  - live WB/China/LLM может давать 403/капчу — защиту не обходить;
+  - push не выполнялся.
+- **Коммит**: `F25: add WB discovery GUI tab`.
+- **Следующий шаг**: F26 — GUI настройки.
 
 ### F24 — done + committed (2026-06-17)
 
