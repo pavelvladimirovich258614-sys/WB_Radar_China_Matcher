@@ -414,7 +414,7 @@ class SettingsController:
         self.session_status_texts.clear()
         for site in SESSION_SITES:
             status = snapshot.sessions.get(site, "неизвестно")
-            status_text = ft.Text(status, size=12, color=ft.Colors.GREY_400)
+            status_text = ft.Text(status, size=12, color=ft.Colors.ON_SURFACE_VARIANT)
             self.session_status_texts[site] = status_text
             rows.append(
                 ft.Row(
@@ -465,7 +465,7 @@ class SettingsController:
         self.status_text = ft.Text(
             "Готов к настройке",
             size=12,
-            color=ft.Colors.GREY_400,
+            color=ft.Colors.ON_SURFACE_VARIANT,
         )
 
         content = ft.Column(
@@ -474,11 +474,11 @@ class SettingsController:
                 self._build_provider_row(),
                 self._build_proxy_row(),
                 self._build_paths_row(),
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self._build_keys_section(),
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self._build_sessions_section(),
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self._build_actions_section(),
                 self.status_text,
             ],

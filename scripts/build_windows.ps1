@@ -83,6 +83,7 @@ try {
         "harvest.describe",
         "gui.app",
         "gui.settings",
+        "gui.theme",
         "PIL",
         "PIL.Image",
         "yaml",

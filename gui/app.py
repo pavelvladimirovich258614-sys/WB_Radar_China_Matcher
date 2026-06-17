@@ -18,6 +18,7 @@ from matcher.input import resolve_input
 
 # Re-export the settings tab builder so consumers can import from gui.app.
 from gui.settings import SettingsController, build_settings_tab
+from gui import theme
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +30,6 @@ VoCService = Callable[[int], VoC]
 HooksService = Callable[[int, VoC], VideoHookSet]
 ReviewVideoService = Callable[[int], list[ReviewVideoItem]]
 ToMatcherBridge = Callable[[int], Any]
-
-DEFAULT_THEME = ft.Theme(
-    color_scheme_seed=ft.Colors.BLUE_GREY,
-    color_scheme=ft.ColorScheme(
-        primary=ft.Colors.BLUE_GREY_200,
-        on_primary=ft.Colors.BLACK,
-        surface=ft.Colors.GREY_900,
-        surface_container_highest=ft.Colors.GREY_800,
-        on_surface=ft.Colors.WHITE,
-        on_surface_variant=ft.Colors.GREY_400,
-    ),
-)
-
 
 def _pct(value: float) -> str:
     return f"{max(0.0, min(1.0, value)) * 100:.1f}%"
@@ -237,7 +225,7 @@ class MatcherChinaController:
         self.results_column.controls.clear()
         if not candidates:
             self.results_column.controls.append(
-                ft.Text("Ничего не найдено", color=ft.Colors.GREY_400)
+                ft.Text("Ничего не найдено", color=ft.Colors.ON_SURFACE_VARIANT)
             )
             return
 
@@ -281,14 +269,14 @@ class MatcherChinaController:
         meta_text = ft.Text(
             f"{candidate.site} • {_pct(candidate.similarity)} • {candidate.price:.2f} ¥",
             size=12,
-            color=ft.Colors.GREY_400,
+            color=ft.Colors.ON_SURFACE_VARIANT,
         )
 
         content = ft.Container(
             content=ft.Row(
                 [
                     ft.Container(
-                        content=ft.Icon(ft.Icons.IMAGE, color=ft.Colors.GREY_500)
+                        content=ft.Icon(ft.Icons.IMAGE, color=ft.Colors.ON_SURFACE_VARIANT)
                         if not candidate.thumb_url
                         else ft.Image(
                             src=candidate.thumb_url,
@@ -296,12 +284,12 @@ class MatcherChinaController:
                             height=64,
                             fit=ft.BoxFit.COVER,
                             error_content=ft.Icon(
-                                ft.Icons.BROKEN_IMAGE, color=ft.Colors.GREY_500
+                                ft.Icons.BROKEN_IMAGE, color=ft.Colors.ON_SURFACE_VARIANT
                             ),
                         ),
                         width=64,
                         height=64,
-                        bgcolor=ft.Colors.GREY_800,
+                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGH,
                         border_radius=4,
                     ),
                     ft.Column(
@@ -316,7 +304,7 @@ class MatcherChinaController:
             ),
             padding=12,
         )
-        return ft.Card(content=content, bgcolor=ft.Colors.GREY_800)
+        return ft.Card(content=content, bgcolor=ft.Colors.SURFACE_CONTAINER_HIGH)
 
     def _download_one(self, candidate: Candidate) -> None:
         if not candidate.video_url:
@@ -381,8 +369,8 @@ class MatcherChinaController:
         exposed here as a standalone control for the desktop shell to mount.
         """
         self.results_column = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
-        self.status_text = ft.Text("Готов к поиску", size=12, color=ft.Colors.GREY_400)
-        self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.BLUE_GREY_200)
+        self.status_text = ft.Text("Готов к поиску", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.PRIMARY)
         self.download_all_button = ft.Button(
             "Скачать все видео топ-5",
             icon=ft.Icons.DOWNLOAD_FOR_OFFLINE,
@@ -395,10 +383,10 @@ class MatcherChinaController:
                 self._build_input_row(page),
                 self.download_all_button,
                 self.progress_bar,
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 ft.Text("Результаты", weight=ft.FontWeight.W_600),
                 self.results_column,
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self.status_text,
             ],
             spacing=16,
@@ -523,7 +511,7 @@ class DiscoveryWBController:
         self.results_column.controls.clear()
         if not products:
             self.results_column.controls.append(
-                ft.Text("Ничего не найдено", color=ft.Colors.GREY_400)
+                ft.Text("Ничего не найдено", color=ft.Colors.ON_SURFACE_VARIANT)
             )
             return
 
@@ -540,7 +528,7 @@ class DiscoveryWBController:
             spacing=8,
         )
         self.results_column.controls.append(header)
-        self.results_column.controls.append(ft.Divider(height=1, color=ft.Colors.GREY_700))
+        self.results_column.controls.append(ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT))
 
         for product in products:
             self.results_column.controls.append(
@@ -623,7 +611,7 @@ class DiscoveryWBController:
 
     def _build_voc_items(self, items: list[VocItem]) -> list[ft.Control]:
         if not items:
-            return [ft.Text("—", color=ft.Colors.GREY_400, size=12)]
+            return [ft.Text("—", color=ft.Colors.ON_SURFACE_VARIANT, size=12)]
         return [
             ft.Text(f"• {item.text} ({item.frequency})", size=12)
             for item in items
@@ -669,7 +657,7 @@ class DiscoveryWBController:
         )
         if not videos:
             self.detail_column.controls.append(
-                ft.Text("Видеоотзывов не найдено", color=ft.Colors.GREY_400, size=12)
+                ft.Text("Видеоотзывов не найдено", color=ft.Colors.ON_SURFACE_VARIANT, size=12)
             )
             return
 
@@ -748,8 +736,8 @@ class DiscoveryWBController:
             spacing=8, scroll=ft.ScrollMode.AUTO, expand=True
         )
         self.detail_column._discovery_controller = self  # type: ignore[attr-defined]
-        self.status_text = ft.Text("Готов к разведке", size=12, color=ft.Colors.GREY_400)
-        self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.BLUE_GREY_200)
+        self.status_text = ft.Text("Готов к разведке", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.PRIMARY)
 
         to_matcher_button = ft.Button(
             "В Матчер",
@@ -768,7 +756,7 @@ class DiscoveryWBController:
                     [ft.Text("Детали товара", weight=ft.FontWeight.W_600), to_matcher_button],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self.detail_column,
             ],
             expand=True,
@@ -778,12 +766,12 @@ class DiscoveryWBController:
             [
                 input_row,
                 self.progress_bar,
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 ft.Text("Вирусные товары", weight=ft.FontWeight.W_600),
                 self.results_column,
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 detail_panel,
-                ft.Divider(height=1, color=ft.Colors.GREY_700),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self.status_text,
             ],
             spacing=16,
@@ -940,13 +928,7 @@ SECTION_MATCHER = "matcher"
 SECTION_DISCOVERY = "discovery"
 SECTION_SETTINGS = "settings"
 
-SIDEBAR_WIDTH = 240
-
-# Sidebar nav-button colors.
-_NAV_BG_SELECTED = ft.Colors.with_opacity(0.16, ft.Colors.WHITE)
-_NAV_BG_IDLE = ft.Colors.TRANSPARENT
-_NAV_FG_SELECTED = ft.Colors.WHITE
-_NAV_FG_IDLE = ft.Colors.GREY_300
+SIDEBAR_WIDTH = 244
 
 
 def _safe_update(control: Any) -> None:
@@ -964,15 +946,28 @@ def _safe_update(control: Any) -> None:
             pass
 
 
+def _safe_update_page(page: Any) -> None:
+    """Best-effort ``page.update()`` (no-op on FakePage in unit tests)."""
+    update = getattr(page, "update", None)
+    if callable(update):
+        try:
+            update()
+        except Exception:
+            pass
+
+
 def build_sidebar_button(
     *,
     label: str,
     icon: Any,
     selected: bool,
     on_click: Callable[[ft.ControlEvent], Any] | None,
+    tokens: "theme.ThemeTokens | None" = None,
 ) -> ft.Container:
-    """A clickable sidebar navigation entry with a selected/unselected style."""
-    fg = _NAV_FG_SELECTED if selected else _NAV_FG_IDLE
+    """A clickable sidebar navigation entry with a token-driven selected style."""
+    t = tokens or theme.get_theme_tokens()
+    fg = t.accent if selected else t.text_secondary
+    bg = t.selected_bg if selected else ft.Colors.TRANSPARENT
     return ft.Container(
         content=ft.Row(
             [
@@ -981,29 +976,32 @@ def build_sidebar_button(
                     label,
                     color=fg,
                     size=14,
-                    weight=ft.FontWeight.W_500 if selected else ft.FontWeight.W_400,
+                    weight=ft.FontWeight.W_600 if selected else ft.FontWeight.W_400,
                 ),
             ],
             spacing=12,
         ),
         padding=12,
-        border_radius=8,
-        bgcolor=_NAV_BG_SELECTED if selected else _NAV_BG_IDLE,
+        border_radius=10,
+        bgcolor=bg,
         on_click=on_click,
         expand=True,
     )
 
 
-def _set_button_selected(button: ft.Container, selected: bool) -> None:
+def _set_button_selected(
+    button: ft.Container, selected: bool, tokens: "theme.ThemeTokens | None" = None
+) -> None:
     """Update a sidebar button's visual selected state in place."""
-    button.bgcolor = _NAV_BG_SELECTED if selected else _NAV_BG_IDLE
+    t = tokens or theme.get_theme_tokens()
+    button.bgcolor = t.selected_bg if selected else ft.Colors.TRANSPARENT
     row = getattr(button, "content", None)
     for child in getattr(row, "controls", None) or []:
         if isinstance(child, ft.Icon):
-            child.color = _NAV_FG_SELECTED if selected else _NAV_FG_IDLE
+            child.color = t.accent if selected else t.text_secondary
         elif isinstance(child, ft.Text):
-            child.color = _NAV_FG_SELECTED if selected else _NAV_FG_IDLE
-            child.weight = ft.FontWeight.W_500 if selected else ft.FontWeight.W_400
+            child.color = t.accent if selected else t.text_secondary
+            child.weight = ft.FontWeight.W_600 if selected else ft.FontWeight.W_400
     _safe_update(button)
 
 
@@ -1018,14 +1016,19 @@ class ShellController:
 
     def __init__(self) -> None:
         self.selected_section: str = SECTION_MATCHER
+        self.theme_mode: str = theme.NIGHT
+        self.tokens: "theme.ThemeTokens" = theme.get_theme_tokens(theme.NIGHT)
         self._sections: list[dict[str, Any]] = []
         self._by_key: dict[str, dict[str, Any]] = {}
         self.content_area: ft.Container | None = None
         self.header_title: ft.Text | None = None
         self.header_subtitle: ft.Text | None = None
         self.status_text: ft.Text | None = None
+        self.status_pill: ft.Container | None = None
         self.sidebar_buttons: dict[str, ft.Container] = {}
+        self.theme_toggle: ft.Container | None = None
         self.root: ft.Control | None = None
+        self._page: ft.Page | None = None
 
     @property
     def sections(self) -> list[str]:
@@ -1057,6 +1060,14 @@ class ShellController:
         self._sections.append(section)
         self._by_key[key] = section
 
+    def _apply_page_theme(self, page: ft.Page) -> None:
+        """Push the active theme to page.theme/theme_mode/bgcolor."""
+        page.theme = theme.build_flet_theme(self.tokens)
+        page.theme_mode = (
+            ft.ThemeMode.DARK if self.tokens.is_dark else ft.ThemeMode.LIGHT
+        )
+        page.bgcolor = self.tokens.page_bg
+
     def set_section(self, key: str) -> None:
         """Switch the active section, swapping the content and updating styles."""
         if key not in self._by_key:
@@ -1075,51 +1086,143 @@ class ShellController:
         if self.status_text is not None:
             self.status_text.value = f"Раздел: {section['label']}"
             _safe_update(self.status_text)
+        if self.status_pill is not None:
+            _safe_update(self.status_pill)
         for s in self._sections:
             btn = self.sidebar_buttons.get(s["key"])
             if btn is not None:
-                _set_button_selected(btn, selected=(s["key"] == key))
+                _set_button_selected(btn, selected=(s["key"] == key), tokens=self.tokens)
+
+    def set_theme(self, mode: str) -> None:
+        """Switch theme (night/day), restyling the chrome and page in place.
+
+        Section contents are reused (not rebuilt) so the user's input/results
+        survive a theme toggle; they re-theme live via M3 role colors.
+        """
+        if mode not in (theme.NIGHT, theme.DAY) or self._page is None:
+            return
+        self.theme_mode = mode
+        self.tokens = theme.get_theme_tokens(mode)
+        self._apply_page_theme(self._page)
+
+        old_root = self.root
+        self.sidebar_buttons = {}
+        self.theme_toggle = None
+        self.build(self._page)
+
+        controls = getattr(self._page, "controls", None)
+        replaced = False
+        if controls is not None and old_root is not None:
+            try:
+                if old_root in controls:
+                    controls[controls.index(old_root)] = self.root
+                    replaced = True
+            except Exception:
+                replaced = False
+        if not replaced:
+            try:
+                self._page.clean()
+                self._page.add(self.root)
+            except Exception:
+                pass
+        _safe_update_page(self._page)
+
+    def toggle_theme(self) -> None:
+        """Flip between night and day."""
+        self.set_theme(theme.other_mode(self.theme_mode))
 
     def build(self, page: ft.Page) -> ft.Control:
         """Lay out the sidebar + content area and return the root control."""
+        self._page = page
         if self.selected_section not in self._by_key:
             # Fall back to the first registered section (supports shells built
             # with non-default section keys via build_desktop_shell).
             self.selected_section = self._sections[0]["key"]
-        nav_items: list[ft.Control] = [
-            ft.Text("WB Radar", size=20, weight=ft.FontWeight.W_700, color=ft.Colors.WHITE),
-            ft.Text("China Matcher & WB Discovery", size=11, color=ft.Colors.GREY_500),
-        ]
+        t = self.tokens
+
+        brand = ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.RADAR, color=t.accent, size=22),
+                        ft.Text(
+                            "WB Radar",
+                            size=19,
+                            weight=ft.FontWeight.W_700,
+                            color=t.text_primary,
+                        ),
+                    ],
+                    spacing=8,
+                ),
+                ft.Text(
+                    "China Matcher & WB Discovery",
+                    size=10,
+                    color=t.text_secondary,
+                ),
+            ],
+            spacing=0,
+        )
+
+        nav_items: list[ft.Control] = [brand, ft.Divider(height=1, color=t.border)]
         for section in self._sections:
             button = build_sidebar_button(
                 label=section["label"],
                 icon=section["icon"],
                 selected=(section["key"] == self.selected_section),
                 on_click=lambda _e, k=section["key"]: self.set_section(k),
+                tokens=t,
             )
             self.sidebar_buttons[section["key"]] = button
             nav_items.append(button)
 
+        toggle_label = "☀  Светлая" if t.is_dark else "☾  Тёмная"
+        toggle_icon = ft.Icons.LIGHT_MODE if t.is_dark else ft.Icons.DARK_MODE
+        self.theme_toggle = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(toggle_icon, color=t.accent_2, size=18),
+                    ft.Text(toggle_label, color=t.text_secondary, size=13),
+                ],
+                spacing=8,
+            ),
+            padding=12,
+            border_radius=10,
+            bgcolor=ft.Colors.TRANSPARENT,
+            on_click=lambda _: self.toggle_theme(),
+            expand=True,
+        )
+        nav_items.append(ft.Divider(height=1, color=t.border))
+        nav_items.append(self.theme_toggle)
+
         sidebar = ft.Container(
-            content=ft.Column(nav_items, alignment=ft.MainAxisAlignment.START, spacing=6),
+            content=ft.Column(
+                nav_items, alignment=ft.MainAxisAlignment.START, spacing=6
+            ),
             width=SIDEBAR_WIDTH,
             padding=16,
-            bgcolor=ft.Colors.BLACK,
+            bgcolor=t.sidebar_bg,
+            gradient=theme.sidebar_gradient(t),
             expand=True,
         )
 
         self.header_title = ft.Text(
-            "", size=20, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE
+            "", size=22, weight=ft.FontWeight.W_600, color=t.text_primary
         )
-        self.header_subtitle = ft.Text("", size=12, color=ft.Colors.GREY_400)
-        self.status_text = ft.Text("", size=11, color=ft.Colors.GREY_500)
+        self.header_subtitle = ft.Text("", size=12, color=t.text_secondary)
+        self.status_text = ft.Text("", size=11, color=t.accent)
+        self.status_pill = ft.Container(
+            content=self.status_text,
+            padding=10,
+            border_radius=20,
+            bgcolor=t.selected_bg,
+        )
         default = self._by_key[self.selected_section]
         self.content_area = ft.Container(content=default["content"], expand=True)
 
         header = ft.Column(
             [
                 ft.Row(
-                    [self.header_title, self.status_text],
+                    [self.header_title, self.status_pill],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
                 self.header_subtitle,
@@ -1130,14 +1233,15 @@ class ShellController:
             content=ft.Column(
                 [
                     header,
-                    ft.Divider(height=1, color=ft.Colors.GREY_800),
+                    ft.Divider(height=1, color=t.border),
                     self.content_area,
                 ],
                 spacing=10,
                 expand=True,
             ),
             expand=True,
-            padding=16,
+            padding=20,
+            gradient=theme.content_glow(t),
         )
 
         self.root = ft.Row(
@@ -1184,9 +1288,11 @@ def create_app(
     Returns a :class:`ShellController` (the shell is also added to ``page``).
     """
     page.title = "WB Radar & China Matcher"
+    # Default theme is night; the shell exposes a Day/Night toggle.
+    tokens = theme.get_theme_tokens(theme.NIGHT)
+    page.theme = theme.build_flet_theme(tokens)
     page.theme_mode = ft.ThemeMode.DARK
-    page.theme = DEFAULT_THEME
-    page.bgcolor = ft.Colors.GREY_900
+    page.bgcolor = tokens.page_bg
 
     if matcher_controller is not None:
         matcher_ctrl = matcher_controller
