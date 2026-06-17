@@ -33,17 +33,25 @@
 
 ## VCS
 
-- Последний коммит F17: `0831125` — F17: add WB review video harvester.
-- Новый коммит F18: будет `F18: add video downloader`.
-- Untracked: `handoff_f15_sa1.md`, `handoff_f15_sa2.md` — не в git.
+- Последний коммит F18: `1442cd4` — F18: add video downloader.
+- Working tree чист, кроме разрешённых untracked `handoff_f15_sa1.md`, `handoff_f15_sa2.md`.
 - Push не выполнялся.
 
 ## Следующий шаг
 
 F20 — Viral detector (velocity + viral_score). Ждёт подтверждения «ОК F20».
 
-## Команда проверки
+## Known issues / constraints
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest -m "not live" -q
-```
+- **F19 не брать до F22**: Description writer зависит от VoC analyzer (F22), который пока не сделан.
+- **WB live** может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту не обходить.
+- **Чужие видеоотзывы** сохраняются только как референс/материал, не перезаливаются 1:1 без прав.
+- `handoff_f15_sa1.md` / `handoff_f15_sa2.md` остаются untracked и не нужны для коммита.
+- `.env` / `sessions/` / `output/` / `.venv/` / `*.db` / `__pycache__/` не tracked.
+
+## Результаты проверки
+
+- `pytest -m "not live" -q` → **477 passed, 1 skipped, 12 deselected**.
+- skipped: WebP/Pillow из F11 (platform-specific, не баг F18).
+- deselected: 12 live-тестов (Alibaba/1688/Taobao/WB).
+- Импорт-чек F18: `from harvest.download import download_video, download_videos` → **download ok**.

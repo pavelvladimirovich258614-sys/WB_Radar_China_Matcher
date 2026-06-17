@@ -4,7 +4,56 @@ F20 — Viral detector (velocity + viral_score) (status: todo). Завязки F
 
 ## Журнал
 
+### SESSION-CLOSE-F18 — сессия закрыта после F18 (2026-06-17)
+
+- **F18 done**: коммит `1442cd4` — "F18: add video downloader".
+- **Статус**: F00–F18 done; active_feature=F20 (НЕ начат, ждём «ОК F20»).
+- **F19 заблокирован**: зависит от F08 (done), F18 (done), F22 (todo — VoC analyzer).
+- **Тесты**: `pytest -m "not live" -q` → **477 passed, 1 skipped, 12 deselected**.
+- skipped: WebP/Pillow из F11 (platform-specific, не баг F18).
+- deselected: 12 live-тестов (Alibaba/1688/Taobao/WB).
+- **Импорт-чек F18**: `from harvest.download import download_video, download_videos` → **download ok**.
+- **VCS**: последние коммиты `1442cd4` (F18: add video downloader), `0831125` (F17: add WB review video harvester). Working tree чист, кроме untracked `handoff_f15_sa1.md`, `handoff_f15_sa2.md` — они не добавляются в git.
+- **Security / ограничения (PASS)**:
+  - F20/F19/GUI не начинались;
+  - реальные видео не скачивались в обычных тестах;
+  - чужие видеоотзывы только как референс/материал, не перезаливаются 1:1 без прав;
+  - WB live может давать 403 — стоп-правило AGENTS.md, защиту не обходить;
+  - `.env`, `sessions/`, `output/`, `.venv/`, `__pycache__/`, `.pytest_cache/`, `*.db` не tracked.
+- **Push не выполнялся**.
+- **Следующий шаг**: F20 — Viral detector (velocity + viral_score). Ждёт «ОК F20».
+
 ### F18 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/download.py`:
+    - `VideoDownloadError` base exception;
+    - `VideoHTTPError`, `VideoContentTypeError`, `VideoTooSmallError`, `VideoTimeoutError`, `VideoNetworkError` — специфические ошибки;
+    - `safe_video_filename(source, index, ext)` — `china_1.mp4`, `wb_review_2.mp4` и т.д.;
+    - `video_output_dir(nmId, base_output)` — `output/video/<nmId>/`, создаёт при необходимости;
+    - `download_video(url, nmId, source, ...)` — httpx stream с retry (tenacity) на timeout/network/transport, `.part` → rename, cleanup при ошибках, проверка content-type и min_bytes, возвращает `VideoAsset`;
+    - `download_videos(items, nmId, source, ...)` — batch, пропускает ошибки, инкрементный index.
+  - `tests/test_download.py` — 21 не-live тест:
+    - `safe_video_filename` (стандартные имена, нормализация index/ext, санитайз source);
+    - `video_output_dir` (создание, повторный вызов);
+    - `download_video`: успешное скачивание через fake httpx stream; путь `output/video/<nmId>/<source>_<i>.mp4`; возвращается `VideoAsset`; source `china` и `wb_review`; `application/octet-stream` допускается; плохой status → `VideoHTTPError`; слишком маленький файл → `VideoTooSmallError` + нет `.part`; неверный content-type → `VideoContentTypeError`; пустой URL → `VideoDownloadError`; video-расширение bypass'ит content-type; инжектированный клиент не закрывается.
+    - `download_videos`: batch возвращает список assets; ошибка одного не останавливает batch.
+    - public API import check.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **477 passed, 1 skipped, 12 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F18);
+  - deselected: 12 live-тестов (Alibaba/1688/Taobao/WB);
+  - F00–F17 не сломаны.
+- **Импорт-чек**: `from harvest.download import download_video, download_videos` → **download ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты не скачивают реальные видео (fake httpx client/stream);
+  - чужие видеоотзывы сохраняются как референс/материал, не перезаливаются 1:1 без прав;
+  - F19/F20/GUI не начаты;
+  - push не выполнялся.
+- **Коммит**: `1442cd4` — "F18: add video downloader".
+- **Следующий шаг**: F20 — Viral detector (velocity + viral_score).
+
+### F17 — done + committed (2026-06-17)
 
 - **Файлы**:
   - `harvest/download.py`:
