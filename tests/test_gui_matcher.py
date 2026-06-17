@@ -90,13 +90,14 @@ def test_create_app_first_tab_is_matcher() -> None:
     tabs = create_app(page)
 
     assert page.theme_mode == ft.ThemeMode.DARK
-    assert tabs.length == 2
+    assert tabs.length == 3
     assert tabs.selected_index == 0
     content = tabs.content
     assert content is not None
-    assert len(content.controls) == 2
+    assert len(content.controls) == 3
     assert content.controls[0].label == "Матчер China"
     assert content.controls[1].label == "Разведка WB"
+    assert content.controls[2].label == "Настройки"
     assert tabs.selected_index == 0
 
 

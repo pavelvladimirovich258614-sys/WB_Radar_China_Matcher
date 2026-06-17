@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F26",
+  "active_feature": "F27",
 
   "features": [
     {
@@ -190,7 +190,7 @@
       "id": "F26",
       "title": "GUI настройки: провайдеры LLM/прокси/логины",
       "deps": ["F08", "F06"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

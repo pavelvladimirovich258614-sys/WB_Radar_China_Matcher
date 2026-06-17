@@ -16,6 +16,9 @@ from harvest.review_video import ReviewVideoItem, get_review_videos
 from harvest.voc import analyze_reviews_voc
 from matcher.input import resolve_input
 
+# Re-export the settings tab builder so consumers can import from gui.app.
+from gui.settings import SettingsController, build_settings_tab
+
 logger = logging.getLogger(__name__)
 
 MatcherPipeline = Callable[[str | Path], tuple[Product | None, list[Candidate]]]
@@ -898,6 +901,7 @@ def create_app(
     hooks_service: HooksService | None = None,
     review_video_service: ReviewVideoService | None = None,
     matcher_controller: MatcherChinaController | None = None,
+    settings_controller: SettingsController | None = None,
 ) -> ft.Tabs:
     """Create the full application with the China matcher tab as default."""
     page.title = "WB Radar & China Matcher"
@@ -929,9 +933,14 @@ def create_app(
         to_matcher_bridge=bridge_to_matcher,
     )
 
+    if settings_controller is not None:
+        settings_tab = settings_controller.build_tab(page)
+    else:
+        settings_tab, _settings_ctrl = build_settings_tab(page)
+
     tabs = ft.Tabs(
-        content=ft.Column([matcher_tab, discovery_tab], expand=True),
-        length=2,
+        content=ft.Column([matcher_tab, discovery_tab, settings_tab], expand=True),
+        length=3,
         selected_index=0,
         animation_duration=200,
         expand=True,

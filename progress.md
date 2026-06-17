@@ -1,8 +1,62 @@
 ## Активная фича
 
-F26 — GUI настройки: провайдеры LLM/прокси/логины (status: todo). Завязки F08/F06 done. F26 не начинался.
+F27 — End-to-end + интеграционные тесты (status: todo). Завязки F24/F25/F26 done. F27 не начинался.
 
 ## Журнал
+
+### F26 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `gui/settings.py` (новый):
+    - `LLM_PROVIDERS` = openrouter/zai/groq/ollama/chatgpt_web;
+    - `PROVIDER_SECRET_KEY` — имя env-переменной для каждого провайдера;
+    - `SettingsSnapshot` — read-only snapshot настроек для GUI;
+    - `mask_secret(value)` — маскирует секрет, показывая первые 2 и последние 4 символа;
+    - `SettingsController` с dependency injection: `save_settings`, `open_folder`, `session_status`, `on_status`;
+    - `load_settings()` — читает `core.config.settings` и статусы сессий;
+    - `validate_settings()` — проверяет провайдер, proxy (urlparse), output/sessions paths;
+    - `save_settings_to_disk()` — читает контролы, валидирует, вызывает injectable `save_settings`;
+    - `_on_validate()`, `_on_open_output()`, `_on_open_sessions()`;
+    - `build_tab(...)` — UI: выбор LLM-провайдера и модели, proxy, пути output/sessions, секции "Ключи / сессии" (masked, password-поля), "Статус сессий" (1688/Taobao/ChatGPT), кнопки "Проверить настройки", "Сохранить", "Открыть output", "Открыть sessions", статус.
+    - `_default_save_settings` пишет в `.env.local` (не tracked), обновляет in-process `settings.llm.provider/model` и `settings.proxy`;
+    - `_default_open_folder` создаёт папку при необходимости и открывает через explorer/open/xdg-open, fallback на webbrowser;
+    - `_default_session_status` проверяет наличие непустой папки в `sessions/<site>`.
+  - `gui/app.py` (расширен):
+    - re-export `SettingsController`, `build_settings_tab` из `gui.settings`;
+    - `create_app(...)` теперь создаёт 3 вкладки: "Матчер China", "Разведка WB", "Настройки" (`length=3`);
+    - параметр `settings_controller` для DI;
+    - первая вкладка остаётся "Матчер China" (`selected_index=0`).
+  - `tests/test_gui_settings.py` — 13 не-live тестов:
+    - `build_settings_tab` создаёт контролы;
+    - `create_app` создаёт 3 вкладки в правильном порядке;
+    - `load_settings` работает на fake config;
+    - `mask_secret` не показывает полный ключ;
+    - `validate_settings` ловит плохой proxy;
+    - `save_settings` вызывает fake storage;
+    - `save_settings` отчитывается об ошибке;
+    - статусы сессий отображаются;
+    - кнопка "Проверить настройки" вызывает validate;
+    - кнопка "Открыть output" вызывает fake opener;
+    - кнопка "Открыть sessions" сообщает об ошибке;
+    - API key отображается masked и в password-поле;
+    - public API import check.
+  - `tests/test_gui_matcher.py` — обновлён: `create_app` теперь 3 вкладки.
+  - `tests/test_gui_discovery.py` — обновлён: `create_app` теперь 3 вкладки.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **603 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F26);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F25 не сломаны.
+- **Импорт-чек F26**: `from gui.app import create_app, build_matcher_tab, build_discovery_tab, build_settings_tab` → **gui settings ok**.
+- **Безопасность / ограничения**:
+  - секреты не отображаются в UI полностью; поля `password=True`;
+  - сохранение идёт в injectable storage, по умолчанию `.env.local` (untracked);
+  - `.env` / `sessions/` / `output/` / `.venv/` / `*.db` / `__pycache__/` не tracked;
+  - обычные тесты без сети, без реального браузера, без реального LLM;
+  - F27/F28 не начаты;
+  - push не выполнялся.
+- **Коммит**: `F26: add GUI settings tab`.
+- **Следующий шаг**: F27 — End-to-end + интеграционные тесты.
 
 ### F25 — done + committed (2026-06-17)
 
