@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F17",
+  "active_feature": "F18",
 
   "features": [
     {
@@ -127,7 +127,7 @@
       "id": "F17",
       "title": "WB review-video harvester (видео из отзывов)",
       "deps": ["F05"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

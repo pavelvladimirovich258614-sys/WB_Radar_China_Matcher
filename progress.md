@@ -1,8 +1,51 @@
 ## Активная фича
 
-F17 — WB review-video harvester (видео из отзывов) (status: todo). Завязка F05 done. F17 не начинался.
+F18 — Video downloader + организация по nmId (status: todo). Завязки F16, F17 done. F18 не начинался.
 
 ## Журнал
+
+### F17 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/review_video.py`:
+    - `ReviewVideoItem` — dataclass-style модель с `review_id`, `nmId`, `rating`, `text`, `video_url`, `pros`, `cons`, `to_dict()`;
+    - `extract_review_videos_from_reviews(reviews)` — фильтр отзывов с `video_url`, сортировка по полезности (текст/pros/cons + высокий рейтинг), битые отзывы логируются и пропускаются;
+    - `get_review_videos(nmId, wb_client=None, max_count=1000, detail_provider=None)`:
+      - resolve `nmId` → `imtId` (через `WBPublic.get_detail` или инжектированный `detail_provider`);
+      - вызывает `WBPublic.get_reviews(imtId, max_count)`;
+      - возвращает отсортированный список `ReviewVideoItem`;
+      - созданный по умолчанию `WBPublic` закрывается, инжектированный — нет.
+  - `tests/test_review_video.py` — 15 не-live тестов + 1 live-gated:
+    - `ReviewVideoItem` fields/defaults/to_dict;
+    - фильтрация только видео-отзывов;
+    - пустой список → [];
+    - сортировка: текст + высокий rating выше;
+    - pros/cons считаются как текст;
+    - битый отзыв пропускается, не падает;
+    - `get_review_videos` с fake `WBPublic`:
+      - detail → reviews pipeline;
+      - `detail_provider` bypass;
+      - пустой результат при отсутствии `imtId`;
+      - пустой результат при отсутствии видео-отзывов;
+      - сортировка;
+      - `max_count` передаётся в `get_reviews`;
+      - инжектированный клиент не закрывается.
+    - public API import check;
+    - live smoke под `@pytest.mark.live` + `WB_TEST_NMID` env.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **456 passed, 1 skipped, 12 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F17);
+  - deselected: 11 live-тестов (Alibaba/1688/Taobao + WB) + 1 новый live F17 = 12;
+  - F00–F16 не сломаны.
+- **Импорт-чек**: `from harvest.review_video import get_review_videos, extract_review_videos_from_reviews` → **review video ok**.
+- **Безопасность / ограничения**:
+  - видео не скачивается (это F18);
+  - чужие видеоотзывы используются как референс/материал, не перезаливаются 1:1 без прав (напоминание AGENTS.md);
+  - обычные тесты без сети;
+  - live-тест под env-гейтом `WB_TEST_NMID`;
+  - F18/F19/F20/GUI не начаты.
+- **Коммит**: `F17: add WB review video harvester`.
+- **Следующий шаг**: F18 — Video downloader + организация по nmId.
 
 ### F16 — done + committed (2026-06-17)
 
