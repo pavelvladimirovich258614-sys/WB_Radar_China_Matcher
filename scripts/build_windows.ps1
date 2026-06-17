@@ -108,6 +108,11 @@ try {
         "--specpath", $ProjectRoot,
         "--add-data", "config.yaml;.",
         "--add-data", "fixtures;fixtures",
+        # Flet JSON data files (icons.json, cupertino_icons.json) are not
+        # auto-discovered by PyInstaller; without them the .exe crashes on
+        # startup with FileNotFoundError: flet/controls/material/icons.json
+        "--collect-data", "flet",
+        "--collect-submodules", "flet",
         "--exclude-module", ".env",
         "--exclude-module", "sessions",
         "--exclude-module", "output",

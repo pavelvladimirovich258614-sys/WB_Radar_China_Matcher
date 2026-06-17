@@ -108,6 +108,12 @@ dist\WB_Radar_China_Matcher\WB_Radar_China_Matcher.exe
 Secrets and runtime folders are not bundled. Place `.env` next to the `.exe`
 for production use.
 
+> The build bundles Flet data files (including
+> `flet/controls/material/icons.json`) via `WB_Radar_China_Matcher.spec`
+> (`collect_data_files("flet")`). If you rebuild by hand and the app crashes on
+> startup with `FileNotFoundError: ...icons.json`, rebuild with the current
+> spec — it is a packaging, not a code, issue.
+
 ## What to do on 403 / captcha
 
 If a live source returns HTTP 403 or shows a captcha:
