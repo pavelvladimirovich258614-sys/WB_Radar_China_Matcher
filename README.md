@@ -8,11 +8,15 @@
 
 Desktop-инструмент для поставщиков и селлеров Wildberries: ищите товар 1:1 на китайских площадках и разведывайте вирусные продукты на WB.
 
-![WB Radar workflow](docs/assets/hero-workflow.svg)
+![WB Radar value map](docs/assets/hero-value-map.svg)
 
-> End-to-end workflow: from WB product research to China matching, review mining, hooks and video assets.
+> One desktop workflow: find viral WB products, understand customer voice, match 1:1 suppliers in China, extract videos, generate hooks and descriptions.
 
-> [Клонируйте репозиторий](https://github.com/pavelvladimirovich258614-sys/WB_Radar_China_Matcher.git)
+## Кратко о продукте
+
+- **Матчер China** — WB товар/фото/ссылка → поиск 1:1 на Alibaba, 1688, Taobao → ранжирование похожести (CLIP + pHash) → извлечение полочного видео.
+- **Разведка WB** — ниша → вирусные товары → отзывы → VoC (боли/желания/страхи) → хуки и раскадровка.
+- **Настройки** — LLM-провайдер, proxy, папки, статус сессий.
 
 ```bash
 git clone https://github.com/pavelvladimirovich258614-sys/WB_Radar_China_Matcher.git
