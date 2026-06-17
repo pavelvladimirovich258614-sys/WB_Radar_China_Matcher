@@ -1,10 +1,44 @@
 ## Активная фича
 
-F15 — CLIP + pHash ранкер (1:1) (status: in_progress). Завязка F11 done. SA1/SA2 выполнены; SA3 не начинался.
+F16 — China video extractor (主图视频 .mp4) (status: todo). Завязки F06, F15 done. F16 не начинался.
 
 ## Журнал
 
 ## Журнал
+
+### F15 — done + committed (2026-06-17)
+
+- **SA3 финализирован** после recovery-checkpoint `6f2b4f0`.
+- **Файлы**:
+  - `matcher/rank.py` — финальная версия:
+    - иерархия ошибок `RankError` → `ImageLoadError`, `ClipUnavailableError`;
+    - `load_image_rgb`, `perceptual_hash`, `phash_similarity`, `image_phash_similarity`, `normalize_score`, `combine_scores`;
+    - `cosine_similarity` с поддержкой list/tuple/numpy/torch, защитой от NaN/inf/пустых векторов;
+    - `ClipImageEmbedder` — ленивый CLIP-эмбеддер (open_clip/torch импортируются только внутри методов), `is_available()` с guarded import, DI для тестов через `_model`/`_preprocess`;
+    - `ChinaCandidateRanker` — комбинирование CLIP + pHash, threshold/max_candidates из `settings.matcher`, сортировка по similarity desc, fallback на pHash при недоступном CLIP, обработка битых thumbnail (score=0.0), `Candidate.model_copy(update={"similarity": score})`;
+    - `load_candidate_image` — загрузка thumb по URL (httpx) или локальному пути;
+    - `rank_candidates` — convenience wrapper.
+  - `tests/test_ranker_sa2.py` — 25 тестов базовых хелперов.
+  - `tests/test_ranker_sa3.py` — 19 тестов высокоуровневого ранкера:
+    - `cosine_similarity` (идентичные, ортогональные, противоположные, numpy/torch, пустые, NaN, zero-norm);
+    - `ClipImageEmbedder.is_available()`, fake embedder без скачивания, lazy конструктор;
+    - `load_candidate_image` локальный путь;
+    - `ChinaCandidateRanker`: empty candidates, duplicate > irrelevant, threshold filtering, max_candidates, use_clip=False + phash, both modalities off → 0.0, broken candidate не падает, `model_copy` сохраняет поля, fake embedder ranking, `rank_candidates` helper, cache hit skips loader, `use_cache=False` recalculates.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **379 passed, 1 skipped, 11 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F15);
+  - deselected: 11 live-тестов (Alibaba/1688/Taobao + ранее существовавшие live);
+  - F00–F14 не сломаны.
+- **Импорт-чеки**:
+  - SA2 base: `from matcher.rank import RankError, ImageLoadError, ClipUnavailableError, load_image_rgb, image_phash_similarity, combine_scores` → **rank base ok**;
+  - F15 ranker: `from matcher.rank import ClipImageEmbedder, ChinaCandidateRanker, rank_candidates` → **ranker f15 ok**.
+- **Безопасность / ограничения**:
+  - open_clip/torch не импортированы на уровне модуля;
+  - обычные тесты не скачивают CLIP-модели (fake embedder);
+  - обычные тесты не ходят в сеть;
+  - `sessions/`, `output/`, `.venv/`, `.env`, `*.db`, `__pycache__/` не tracked.
+- **Коммит**: `15b3a8b` — "F15: add CLIP and pHash ranker".
+- **Следующий шаг**: F16 — China video extractor (主图视频 .mp4).
 
 ### RECOVERY-CLOSE-F15 — checkpoint (2026-06-17)
 
