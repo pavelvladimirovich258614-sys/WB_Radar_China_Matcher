@@ -1,8 +1,49 @@
 ## Активная фича
 
-F21 — Reviews collector (массовый сбор по топ-товарам) (status: todo). Завязки F05, F20 done. F21 не начинался.
+F22 — VoC analyzer (боли/желания/страхи JSON) (status: todo). Завязки F08, F21 done. F22 не начинался.
 
 ## Журнал
+
+### F21 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/reviews.py`:
+    - `ReviewCollectionResult` pydantic-модель: `nmId`, `imtId`, `reviews_count`, `output_path`, `status`, `error`;
+    - `ReviewsCollectorError` / `ProductInputError` — ошибки;
+    - `_resolve_product()` — нормализует вход: `Product`, `ViralProduct`, pydantic-модели, `dict`, `int`, `str` (nmId);
+    - `collect_reviews_for_product(product_or_nm_id, wb_client=None, output_root=None, max_count=1000)`:
+      - если `imtId` есть — `WBPublic.get_reviews(imtId, max_count)`;
+      - если только `nmId` — `WBPublic.get_detail(nmId)` для получения `imtId`;
+      - сохраняет JSON в `output/reviews/<nmId>.json` через `Storage.save_json` (`ensure_ascii=False`, `indent=2`);
+      - возвращает `ReviewCollectionResult`;
+      - ошибки — `status="error"` + `error`;
+      - инжектированный `wb_client` не закрывается, созданный по умолчанию — закрывается.
+    - `collect_reviews_for_products(products, ...)` — batch; ошибка одного товара не валит весь batch; пустой вход → [].
+  - `tests/test_reviews_collector.py` — 18 не-live тестов:
+    - для 2 товаров создаются `output/reviews/<nmId>.json`;
+    - при наличии `imtId` `get_detail` не вызывается;
+    - при отсутствии `imtId` вызывается `get_detail(nmId)`;
+    - `get_reviews` вызывается с правильным `imtId` и `max_count`;
+    - JSON содержит список отзывов с полями `Review.model_dump(mode="json")`;
+    - пустой список отзывов сохраняется как `[]`;
+    - ошибка одного товара не валит batch;
+    - `output_root` можно подменить на `tmp_path`;
+    - входы: `Product`, `ViralProduct`, `int`, `str` nmId, `dict`;
+    - товар без `imtId` после `get_detail` возвращает ошибку;
+    - инжектированный клиент не закрывается, дефолтный — закрывается.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **523 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F21);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F20 не сломаны.
+- **Импорт-чек F21**: `from harvest.reviews import collect_reviews_for_product, collect_reviews_for_products` → **reviews collector ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети (fake `WBPublic`);
+  - F22/F23/GUI не начаты;
+  - F19 всё ещё заблокирован до F22;
+  - push не выполнялся.
+- **Коммит**: `F21: add reviews collector`.
+- **Следующий шаг**: F22 — VoC analyzer (боли/желания/страхи JSON).
 
 ### F20 — done + committed (2026-06-17)
 

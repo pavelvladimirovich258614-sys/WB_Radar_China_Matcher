@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F21",
+  "active_feature": "F22",
 
   "features": [
     {
@@ -155,7 +155,7 @@
       "id": "F21",
       "title": "Reviews collector (массовый сбор по топ-товарам)",
       "deps": ["F05", "F20"],
-      "status": "todo"
+      "status": "done"
     },
 
     {
