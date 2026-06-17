@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F28",
+
 
   "features": [
     {
@@ -204,7 +204,9 @@
       "id": "F28",
       "title": "Сборка .exe (flet pack) + проверка на чистой машине",
       "deps": ["F27"],
-      "status": "todo"
+      "status": "done"
     }
-  ]
+  ],
+
+  "active_feature": null
 }

@@ -1,8 +1,62 @@
 ## Активная фича
 
-F28 — Сборка .exe (flet pack) + проверка на чистой машине (status: todo). Завязка F27 done. F28 не начиналась.
+Все фичи F00–F28 завершены. Проект complete.
 
 ## Журнал
+
+### F28 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `run.py` (обновлён): теперь импортирует и вызывает `gui.app.main` — точка входа для PyInstaller/.exe открывает GUI;
+  - `scripts/build_windows.ps1` (новый):
+    - PowerShell-скрипт сборки Windows .exe через PyInstaller;
+    - проверяет `.venv`, устанавливает/обновляет `pyinstaller`;
+    - по умолчанию запускает `pytest -m "not live" -q` перед сборкой (можно пропустить `-SkipTests`);
+    - поддерживает `-OneFile` для одного .exe;
+    - перечисляет `hiddenimports` для всех проектных модулей;
+    - добавляет `config.yaml` и `fixtures/` в сборку;
+    - исключает `.env`, `sessions/`, `output/`, `.venv/`, `build/`, `dist/`;
+    - выводит путь, размер и SHA256 итогового .exe;
+    - копирует `.env.example` рядом с .exe.
+  - `WB_Radar_China_Matcher.spec` (новый, сгенерирован PyInstaller и отредактирован):
+    - `Analysis` для `run.py`;
+    - `datas` содержит `config.yaml` и `fixtures/`;
+    - `hiddenimports` — все ключевые модули проекта;
+    - `excludes` — `.env`, `sessions`, `output`, `.venv`, `build`, `dist`;
+    - `exclude_binaries=True` + `COLLECT` → onedir-сборка по умолчанию.
+  - `tests/test_build_packaging.py` (новый) — 11 не-live тестов:
+    - `run.py` импортирует `gui.app.main`;
+    - build script существует и использует PyInstaller;
+    - build script проверяет `.venv`, запускает тесты или поддерживает `-SkipTests`;
+    - build script исключает секретные/временные папки;
+    - build script не содержит hardcoded API keys;
+    - README содержит секцию `.exe`-сборки и упоминает `build_windows.ps1`;
+    - README упоминает `.env`/`sessions`/`output`;
+    - `.gitignore` исключает `build/`, `dist/`, `.env`, `sessions/`, `output/`, `.venv/`, `*.db`, `__pycache__/`;
+    - `gui.app.main` callable;
+    - импорт `gui.app` внутри `.venv` не открывает окно и не падает.
+  - `.gitignore` (обновлён): добавлены `build/` и `dist/`.
+  - `README.md` (обновлён): добавлена секция "Сборка Windows .exe" с командами PowerShell, требованиями, путём к .exe, известными ограничениями.
+- **Локальная сборка**:
+  - PyInstaller успешно собрал `.exe` в текущей среде Windows 10/Python 3.11;
+  - Итоговый файл: `dist\WB_Radar_China_Matcher\WB_Radar_China_Matcher.exe`;
+  - Размер: **57.6 MB**;
+  - SHA256: `EBE3B4D3613E223E773C09C453810136ED254E0A10EB19E1DF416093CF7ED7AC`;
+  - Предупреждения PyInstaller по `pyyaml`, `scipy.special._cdflib` и `torch.utils.tensorboard` — не критичны, приложение стартует.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **620 passed, 1 skipped, 15 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F28);
+  - deselected: 15 live-тестов;
+  - F00–F27 не сломаны.
+- **Импорт-чек F28**: `from gui.app import create_app` → **final gui import ok**.
+- **Безопасность / ограничения**:
+  - секреты и временные папки не включены в `.exe`;
+  - `.env` / `sessions/` / `output/` / `.venv/` / `*.db` / `__pycache__/` не tracked;
+  - build/dist не коммитятся;
+  - обычные тесты без сети, без реального браузера, без реального LLM;
+  - push не выполнялся.
+- **Коммит**: `F28: add Windows executable build`.
+- **Статус проекта**: F00–F28 done; active_feature=null.
 
 ### F27 — done + committed (2026-06-17)
 

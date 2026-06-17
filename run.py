@@ -1,5 +1,4 @@
-def main() -> None:
-    print("boot ok")
+from gui.app import main
 
 
 if __name__ == "__main__":

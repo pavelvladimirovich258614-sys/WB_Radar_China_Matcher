@@ -87,6 +87,54 @@ tests/     — unit, integration, e2e и live smoke tests
 fixtures/  — сохранённые фикстуры ответов
 ```
 
+## Сборка Windows .exe
+
+Для сборки desktop `.exe` используется PyInstaller. В `.exe` не включаются
+секреты и временные данные — приложение читает `.env` / `.env.local` и
+создаёт `sessions/` / `output/` рядом с собранным файлом.
+
+### Требования
+
+- Windows 10/11
+- Python 3.11+
+- Git-репозиторий с настроенным `.venv`
+
+### Команда сборки
+
+```powershell
+# PowerShell (из корня репозитория)
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+
+# Без запуска тестов перед сборкой
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -SkipTests
+
+# Одним файлом
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -OneFile
+```
+
+Скрипт:
+
+1. Проверяет `.venv`.
+2. Устанавливает `pyinstaller`.
+3. Запускает `pytest -m "not live" -q` (если не передан `-SkipTests`).
+4. Собирает `.exe` в `dist/WB_Radar_China_Matcher/`.
+5. Копирует `.env.example` рядом с `.exe`.
+
+### Результат
+
+- По умолчанию: `dist/WB_Radar_China_Matcher/WB_Radar_China_Matcher.exe`
+- С `-OneFile`: `dist/WB_Radar_China_Matcher.exe`
+
+После первого запуска приложение создаст рядом с `.exe` папки `sessions/`
+и `output/` (если их нет), а ключи и сессии пользователь заполняет сам.
+
+### Известные ограничения
+
+- Сборка на Linux/Mac требует Wine/CrossOver и не покрывается этим скриптом.
+- Первый запуск может потребовать `playwright install chromium` или наличия
+  Chromium в `sessions/` / в системе.
+- WB/China могут давать 403/капчу — защиту не обходить, см. AGENTS.md.
+
 ## Безопасность и границы
 
 - Не обходим капчи/антибот/WAF.
