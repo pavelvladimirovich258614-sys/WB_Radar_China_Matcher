@@ -1,8 +1,50 @@
 ## Активная фича
 
-F22 — VoC analyzer (боли/желания/страхи JSON) (status: todo). Завязки F08, F21 done. F22 не начинался.
+F19 — Description writer (LLM: описание/подводка под видео) (status: todo). Завязки F08, F18, F22 done. F19 не начинался.
 
 ## Журнал
+
+### F22 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `core/models.py`:
+    - `VocItem` расширен полями `quote` (дословная цитата) и `source_review_ids` (источники).
+  - `harvest/voc.py`:
+    - `VoCAnalyzerError` / `ReviewsLoadError` / `VoCAnalysisError`;
+    - `load_reviews_for_voc(path_or_nm_id, reviews, output_root)` — загружает отзывы из файла `output/reviews/<nmId>.json`, по nmId, или принимает готовый список `Review`;
+    - `chunk_reviews(reviews, batch_size=40)` — разбивает на батчи по 40;
+    - `build_voc_prompt(reviews)` — строит prompt для LLM со схемой VoC;
+    - `_VOC_JSON_SCHEMA` — JSON schema с 7 категориями;
+    - `analyze_reviews_voc(reviews, llm_provider=None, batch_size=40)` — анализ батчами через `LLMProvider.complete_json`, merge + dedupe; пустые отзывы → пустой `VoC`; битый LLM-ответ логируется и пропускается;
+    - `merge_voc_results(results)` — склеивает категории из нескольких батчей;
+    - `dedupe_voc_items(items)` — дедуп по нормализованному text, суммирование frequency, merge source_review_ids; сортировка по frequency desc, text asc;
+    - `save_voc(nm_id, voc, output_root)` — сохраняет `output/voc/<nmId>.json` через `Storage.save_json` (`ensure_ascii=False`, `indent=2`);
+    - `analyze_voc_for_nmId(nm_id, reviews_path, llm_provider, output_root, batch_size)` — convenience pipeline: load → analyze → save → return VoC.
+  - `tests/test_voc.py` — 20 не-live тестов:
+    - `chunk_reviews` режет по 40;
+    - `analyze_reviews_voc` вызывает fake LLM для каждого батча;
+    - валидный JSON от fake LLM превращается в `VoC`;
+    - `merge_voc_results` склеивает категории;
+    - `dedupe_voc_items` объединяет повторы и суммирует frequency;
+    - сортировка по frequency desc;
+    - пустые отзывы → валидный пустой VoC;
+    - `save_voc` создаёт `output/voc/<nmId>.json`;
+    - `analyze_voc_for_nmId` читает reviews JSON и сохраняет voc JSON;
+    - битый ответ LLM обрабатывается стабильно;
+    - инжектированный LLM-провайдер не закрывается, дефолтный — закрывается.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **543 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F22);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F21 не сломаны.
+- **Импорт-чек F22**: `from harvest.voc import analyze_reviews_voc, analyze_voc_for_nmId, merge_voc_results` → **voc ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети и без реального LLM (fake `LLMProvider`);
+  - F19/F23/GUI не начаты;
+  - API-ключи не в коде, читаются из `.env` через `core.config`;
+  - push не выполнялся.
+- **Коммит**: `F22: add VoC analyzer`.
+- **Следующий шаг**: F19 — Description writer (LLM: описание/подводка под видео). F19 теперь разблокирован, т.к. F22 done.
 
 ### F21 — done + committed (2026-06-17)
 

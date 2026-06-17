@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F22",
+  "active_feature": "F19",
 
   "features": [
     {
@@ -162,7 +162,7 @@
       "id": "F22",
       "title": "VoC analyzer (боли/желания/страхи JSON)",
       "deps": ["F08", "F21"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

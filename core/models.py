@@ -43,6 +43,8 @@ class Candidate(BaseModel):
 class VocItem(BaseModel):
     text: str
     frequency: int = 0
+    quote: Optional[str] = None
+    source_review_ids: list[str] = Field(default_factory=list)
 
 
 class VoC(BaseModel):
