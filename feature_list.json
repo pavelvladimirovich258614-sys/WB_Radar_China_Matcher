@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F20",
+  "active_feature": "F21",
 
   "features": [
     {
@@ -148,7 +148,7 @@
       "id": "F20",
       "title": "Viral detector (velocity + viral_score)",
       "deps": ["F04", "F05"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

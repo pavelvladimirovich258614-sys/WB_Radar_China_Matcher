@@ -1,8 +1,54 @@
 ## Активная фича
 
-F20 — Viral detector (velocity + viral_score) (status: todo). Завязки F04, F05 done. F20 не начинался.
+F21 — Reviews collector (массовый сбор по топ-товарам) (status: todo). Завязки F05, F20 done. F21 не начинался.
 
 ## Журнал
+
+### F20 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/discovery.py`:
+    - `ViralProduct` / `ViralResult` pydantic-модели;
+    - `parse_review_date()` — парсит ISO и `YYYY-MM-DD` даты, отбрасывает будущие;
+    - `count_reviews_since()` — считает отзывы не старше N дней;
+    - `compute_velocity()` — возвращает `(velocity_7d, velocity_30d)`;
+    - `normalize_values()` — min-max нормализация, детерминированная;
+    - `rating_closeness(rating, target=4.6)` — 1.0 на target, линейное падение до 0.0 на расстоянии ≥1.4;
+    - `compute_viral_scores()` — считает `viral_score = 0.5*norm(velocity_7d) + 0.3*norm(feedbacks) + 0.2*close(rating,4.6)` и сортирует по убыванию;
+    - `niche(query, pages=1, top_n=20, wb_client=None, output_root=None)` — пайплайн:
+      - `WBPublic.search(query, pages=...)`;
+      - top_n по `feedbacks`;
+      - `WBPublic.get_reviews(imtId)` для каждого;
+      - скоринг и сортировка;
+      - CSV экспорт в `output/viral/<query>_<date>.csv` через `Storage.save_csv`;
+      - инжектированный `wb_client` не закрывается, созданный по умолчанию — закрывается;
+      - при ошибке get_reviews продукт не пропускается, а добавляется с нулевыми velocity и логом WARNING.
+  - `tests/test_discovery.py` — 28 не-live тестов + 1 live-gated:
+    - парсинг дат, в т.ч. будущие отбрасываются;
+    - `count_reviews_since` 7d/30d, старые не попадают;
+    - `normalize_values` детерминирован;
+    - `rating_closeness` максимален около 4.6;
+    - `compute_viral_scores` сортирует правильно;
+    - `niche()` вызывает `search()` и `get_reviews()`;
+    - `top_n` ограничивает количество товаров;
+    - пустая выдача search → [];
+    - товар без `imtId` пропускается стабильно;
+    - CSV экспорт создаётся в `output/viral/`;
+    - default client создаётся/закрывается, инжектированный — нет;
+    - ошибка get_reviews логируется и не падает;
+    - live smoke под `@pytest.mark.live` + `WB_TEST_DISCOVERY=1`.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **505 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F20);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F18 не сломаны.
+- **Импорт-чек F20**: `from harvest.discovery import niche, compute_viral_scores` → **discovery ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети (fake `WBPublic`);
+  - F19/F21/F22/GUI не начаты;
+  - push не выполнялся.
+- **Коммит**: `F20: add viral detector`.
+- **Следующий шаг**: F21 — Reviews collector (массовый сбор по топ-товарам).
 
 ### SESSION-CLOSE-F18 — сессия закрыта после F18 (2026-06-17)
 
