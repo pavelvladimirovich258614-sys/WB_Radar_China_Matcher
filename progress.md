@@ -1,8 +1,26 @@
 ## Активная фича
 
-F15 — CLIP + pHash ранкер (1:1) (status: todo). Завязка F11 done.
+F15 — CLIP + pHash ранкер (1:1) (status: in_progress). Завязка F11 done. SA1/SA2 выполнены; SA3 не начинался.
 
 ## Журнал
+
+## Журнал
+
+### RECOVERY-CLOSE-F15 — checkpoint (2026-06-17)
+
+- **Сессия оборвалась по лимитам** после завершения SA2. Новый коммит не был создан.
+- **Восстановлено и проверено**:
+  - `matcher/rank.py` на месте;
+  - `tests/test_ranker_sa2.py` — 25 тестов;
+  - `tests/test_ranker_sa3.py` существует (финальные тесты), но **SA3 не начинался официально** — файл оставлен без изменений в рамках recovery;
+  - `pytest -m "not live" -q` → **379 passed, 1 skipped, 11 deselected**;
+  - импорт-чек SA2: `from matcher.rank import RankError, ImageLoadError, ClipUnavailableError, load_image_rgb, image_phash_similarity, combine_scores` → OK;
+  - импорт-чек F15-ранкера: `from matcher.rank import ClipImageEmbedder, ChinaCandidateRanker, rank_candidates` → OK;
+- **F15 статус**: in_progress / checkpoint. НЕ считается done, т.к. SA3 (ClipImageEmbedder + ChinaCandidateRanker + Storage cache) официально не выполнялся; высокоуровневый ранкер в `matcher/rank.py` уже присутствует, но требует завершения SA3 для полного DoD.
+- **Временный мусор удалён**: `test_esc.txt`, `test_esc2.txt`, `x.txt`.
+- **Не в git**: `handoff_f15_sa1.md`, `handoff_f15_sa2.md` (их суть перенесена в `session-handoff.md`).
+- **F16 не начинался**. GUI не тронут. China drivers не изменены. Push не выполнялся.
+- **Следующий шаг**: F15 SA3 — финализировать `ClipImageEmbedder` + `ChinaCandidateRanker`, прогнать полный `tests/test_ranker_sa3.py`, обновить `feature_list.json`/`progress.md` и сделать финальный коммит F15.
 
 ### F14 — done (2026-06-16)
 

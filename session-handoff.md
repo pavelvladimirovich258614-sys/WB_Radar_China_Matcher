@@ -1,36 +1,52 @@
 # Session Handoff — WB Radar & China Matcher
 
-## F14 — done: China driver: Taobao 拍立淘 (опц., логин)
+## RECOVERY-CLOSE-F15 — checkpoint
 
-**Последняя фича**: F14 — done.
-**Active feature**: F15 — CLIP + pHash ранкер (1:1) (status: todo, не начат).
+**Последний коммит до F15**: `42102ad` — F14: add Taobao image search driver.
+**Текущий новый коммит**: будет создан в recovery — `F15: checkpoint pHash ranker recovery`.
+**Статус F15**: in_progress / checkpoint (НЕ done).
 
 ## Что сделано
 
-- `matcher/china/taobao.py`:
-  - иерархия ошибок `TaobaoSearchError` → `TaobaoCaptchaError`, `TaobaoLoginRequiredError`, `TaobaoNoResultsError`;
-  - чистые функции: `is_captcha_html`, `is_login_required_html`, `is_empty_results_html`, `normalize_candidate_url`;
-  - `parse_results_html` — парсер выдачи Taobao без сети, балансировка вложенных `<div>`, поддержка `data-src`/`data-ks-lazyload`/`data-price`/`data-title`/`title`/`alt`, цен ¥/￥, видео-признаков;
-  - `TaobaoImageSearchDriver`: `search_by_image`, `close`, `__enter__/__exit__`;
-  - интеграция `BrowserManager` (site="taobao") и `Storage` (cache namespace `"taobao:image_search"`);
-  - ownership browser: закрывает только созданный самим драйвером `BrowserManager`;
-- `matcher/china/__init__.py` — ре-экспорт Taobao-сущностей с алиасами (`is_taobao_*`, `normalize_taobao_candidate_url`, `parse_taobao_results_html`);
-- `fixtures/taobao_search_results.html` — 6 карточек (4 валидных + 1 дубликат + 1 phone-ссылка), relative/protocol-relative/absolute URL, разные цены, видео-признаки;
-- `fixtures/taobao_captcha.html` — 验证码/滑块/robot/security check;
-- `fixtures/taobao_login.html` — 登录/密码/账号/请登录;
-- `fixtures/taobao_empty.html` — 暂无搜索结果/没有结果;
-- `tests/test_taobao_driver.py` — 34 не-live теста + 1 live-gated тест.
+- Восстановлена сессия после обрыва по лимитам.
+- Подтверждено, что SA1 и SA2 выполнены:
+  - `matcher/rank.py` — иерархия ошибок `RankError` → `ImageLoadError`, `ClipUnavailableError`;
+  - `load_image_rgb`, `perceptual_hash`, `phash_similarity`, `image_phash_similarity`, `normalize_score`, `combine_scores`;
+  - дополнительно в `matcher/rank.py` уже присутствуют `ClipImageEmbedder`, `ChinaCandidateRanker`, `rank_candidates`, `load_candidate_image`, `cosine_similarity` (результат работы, сохранившейся после обрыва, но SA3 официально не завершён).
+- `tests/test_ranker_sa2.py` — 25 тестов базовых хелперов.
+- `tests/test_ranker_sa3.py` существует, но **SA3 официально не начинался** и в рамках recovery не дорабатывался.
+
+## Результаты проверки
+
+- `pytest -m "not live" -q` → **379 passed, 1 skipped, 11 deselected**.
+- skipped: WebP/Pillow из F11 (platform-specific, не баг F15).
+- deselected: 11 live-тестов (Alibaba/1688/Taobao + ранее существовавшие live).
+- Импорт-чек SA2: `from matcher.rank import RankError, ImageLoadError, ClipUnavailableError, load_image_rgb, image_phash_similarity, combine_scores` → **rank base ok**.
+- Импорт-чек F15-ранкера: `from matcher.rank import ClipImageEmbedder, ChinaCandidateRanker, rank_candidates` → **ranker f15 ok**.
 
 ## Что НЕ доделано / known issues
 
-- **Taobao требует логин-сессию**: без `sessions/taobao/` live-тест skip'ается; если сессия протухла — `TaobaoLoginRequiredError`;
-- **captcha/anti-bot не обходятся**: код бросает `TaobaoCaptchaError`;
-- **парсер может потребовать уточнения** под живую вёрстку при смене селекторов Taobao;
-- **WebP/Pillow skip** — platform-specific, не баг F14.
+- **F15 не закрыта** — SA3 (ClipImageEmbedder + ChinaCandidateRanker + Storage cache + финальные тесты) официально не выполнен.
+- `tests/test_ranker_sa3.py` существует, но не отражает завершённый SA3.
+- **F16 не начинался**.
+- GUI не тронут.
+- China drivers (`matcher/china/alibaba.py`, `s1688.py`, `taobao.py`) не изменялись.
+- **Push не выполнялся**.
+
+## Временный мусор
+
+Удалены: `test_esc.txt`, `test_esc2.txt`, `x.txt`.
+Не в git: `handoff_f15_sa1.md`, `handoff_f15_sa2.md` (их содержание перенесено в этот handoff).
 
 ## Следующий шаг
 
-F15 — CLIP + pHash ранкер (1:1). Фича не начата.
+F15 SA3 — завершить высокоуровневый ранкер:
+1. Доработать/утвердить `ClipImageEmbedder` (lazy open_clip/torch, `is_available`, `embed_image`, `cosine_similarity`).
+2. Доработать/утвердить `ChinaCandidateRanker` (downloader injection, CLIP+pHash, `top_k`/threshold, cache, `use_cache=False`).
+3. Прогнать `tests/test_ranker_sa3.py` и при необходимости дополнить.
+4. Полный `pytest -m "not live"` зелёный.
+5. Обновить `feature_list.json`: F15 → done, active_feature → F16.
+6. Сделать финальный коммит F15.
 
 ## Команда проверки
 
@@ -38,24 +54,8 @@ F15 — CLIP + pHash ранкер (1:1). Фича не начата.
 .\.venv\Scripts\python.exe -m pytest -m "not live" -q
 ```
 
-Результат: **325 passed, 1 skipped, 11 deselected**.
+## VCS
 
-## Commit
-
-F14: add Taobao image search driver — `bbe84287626dfc96aafe7b25b194d5173db9f815`
-
-Закоммичено, не запушено.
-
-## Live-команда Taobao
-
-Создать сессию (один раз):
-
-```powershell
-.\.venv\Scripts\python.exe -c "from core.browser import BrowserManager; BrowserManager().manual_login('taobao', url='https://www.taobao.com/markets/pic/search')"
-```
-
-Затем запуск live-теста:
-
-```powershell
-$env:TAOBAO_LIVE="1"; .\.venv\Scripts\python.exe -m pytest -m live tests/test_taobao_driver.py -s
-```
+- Последний коммит до F15: `42102ad`.
+- Recovery-коммит: `F15: checkpoint pHash ranker recovery` (matcher/rank.py, tests/test_ranker_sa2.py, progress.md, session-handoff.md, feature_list.json).
+- Push не выполнялся.
