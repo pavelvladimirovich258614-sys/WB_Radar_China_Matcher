@@ -1,64 +1,62 @@
 # Session Handoff — WB Radar & China Matcher
 
-## F23 — done: Hook generator (.md хуки + структура ролика)
+## F24 — done: GUI вкладка Матчер China
 
-**Последняя фича**: F23 — done.
-**Active feature**: F24 — GUI вкладка Матчер China (status: todo, не начат).
+**Последняя фича**: F24 — done.
+**Active feature**: F25 — GUI вкладка Разведка WB + мост в Матчер (status: todo, не начат).
 
 ## Что сделано
 
-- `harvest/hooks.py`:
-  - `VideoHookSet` pydantic-модель: `hooks` (5 вариантов), `structure` (список `Scene`), `objections`;
-  - `Scene` pydantic-модель: `scene`, `duration`, `content`;
-  - `HookGeneratorError` / `HookResponseError`;
-  - `build_hooks_prompt(voc, product=None)` — prompt на основе VoC и опционально товара;
-  - `_HOOKS_JSON_SCHEMA` — JSON schema с required `hooks`/`structure`/`objections`;
-  - `parse_hooks_response(raw)` — валидация + fallback на битый/неполный LLM-ответ (5 дефолтных хуков, структура по умолчанию, возражения по умолчанию);
-  - `save_hooks(nm_id, hook_set, output_root)` — сохраняет `output/hooks/<nmId>.md`;
-  - `generate_hooks(voc, nm_id=None, product=None, llm_provider=None, output_root=None)` — pipeline: prompt → LLM → parse → save (если nm_id задан) → return;
-  - инжектированный LLM-провайдер не закрывается, дефолтный — закрывается.
-- `tests/test_hooks.py` — 14 не-live тестов:
-  - `build_hooks_prompt` содержит VoC + товар;
-  - `generate_hooks` вызывает fake LLM и сохраняет `.md`;
-  - валидный fake response → `VideoHookSet` с 5 хуками, структурой и возражениями;
-  - сохраняется Markdown в `output/hooks/<nmId>/`;
-  - `hooks` содержит ровно 5 вариантов;
-  - структура рендерится таблицей;
-  - неполный/битый ответ LLM → fallback без падения;
-  - пустой VoC не валит генерацию;
-  - без `nm_id` файл не сохраняется;
-  - инжектированный провайдер не закрывается, дефолтный — закрывается.
+- `gui/app.py`:
+  - `MatcherChinaController` — контроллер вкладки "Матчер China" с dependency injection (`matcher_pipeline`, `downloader`, `output_root`);
+  - `build_matcher_tab(...)` и `create_app(...)` — публичный API для GUI;
+  - Тёмная тема, вкладка "Матчер China" первая и единственная (`selected_index=0`);
+  - Поле ввода WB артикула/ссылки, кнопка "Фото" через `FilePicker`, кнопка "Найти";
+  - Прогресс/статус поиска;
+  - Список кандидатов: thumb, площадка, название, similarity %, цена, кнопки "Открыть"/"Видео"/"Скачать";
+  - Кнопка "Скачать все видео топ-5" — берёт топ-5 кандидатов с `video_url`;
+  - `_default_matcher_pipeline` — thin wrapper над `matcher.input.resolve_input`, China drivers, `matcher.rank.rank_candidates`, `matcher.video_china.ChinaVideoExtractor`; не используется в обычных тестах;
+  - Пустой ввод → статус, ошибка pipeline → статус, без падения UI;
+  - Инжектированные pipeline/downloader позволяют тестировать без сети и браузера.
+- `tests/test_gui_matcher.py` — 11 не-live тестов:
+  - создание вкладки и всех контролов;
+  - `create_app` → тёмная тема, первая вкладка "Матчер China";
+  - fake pipeline вызывается и результаты рендерятся;
+  - similarity как процент;
+  - пустой ввод, ошибка pipeline;
+  - скачивание одного и топ-5 видео через fake downloader;
+  - public API import check.
 
 ## Что НЕ доделано / known issues
 
-- **GUI** — следующий блок: F24/F25/F26;
-- **End-to-end + .exe** — после GUI;
+- **F25 — GUI вкладка Разведка WB + мост в Матчер** — следующий шаг;
+- **F26/F27/F28** не начинались;
+- live WB/China может давать 403/капчу — защиту не обходить (AGENTS.md);
 - Чужие видеоотзывы сохраняются как референс/материал, не перезаливаются 1:1 без прав;
-- Реальные LLM-запросы требуют ключей в `.env` (OpenRouter/Z.AI/Groq/Ollama), ключи не коммитить;
-- WB live может давать 403 — стоп-правило AGENTS.md, защиту не обходить;
+- API-ключи LLM только в `.env`, не коммитить;
 - Push не выполнялся.
 
 ## Результаты проверки
 
-- `pytest -m "not live" -q` → **569 passed, 1 skipped, 13 deselected**.
-- skipped: WebP/Pillow из F11 (platform-specific, не баг F23).
+- `pytest -m "not live" -q` → **580 passed, 1 skipped, 13 deselected**.
+- skipped: WebP/Pillow из F11 (platform-specific, не баг F24).
 - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery).
-- Импорт-чек F23: `from harvest.hooks import generate_hooks, save_hooks, build_hooks_prompt` → **hooks ok**.
-- F00–F22 не сломаны.
+- Импорт-чек F24: `from gui.app import create_app, build_matcher_tab` → **gui matcher ok**.
+- F00–F23 не сломаны.
 
 ## VCS
 
-- Последний коммит F23: `F23: add hook generator`.
+- Последний коммит F24: `F24: add China matcher GUI tab`.
 - Working tree чист, кроме разрешённых untracked `handoff_f15_sa1.md`, `handoff_f15_sa2.md`.
 - Push не выполнялся.
 
 ## Следующий шаг
 
-F24 — GUI вкладка Матчер China (Flet, поле артикула/фото, таблица кандидатов, скачивание видео). Ждёт подтверждения «ОК F24».
+F25 — GUI вкладка Разведка WB + мост в Матчер. Ждёт подтверждения «ОК F25».
 
 ## Known issues / constraints
 
-- **GUI не начинался**.
+- **F25/F26/F27/F28 не начинались**.
 - **Реальные LLM-запросы** требуют ключей в `.env` — никогда не коммитить ключи.
 - **WB live** может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту не обходить.
 - **Чужие видеоотзывы** сохраняются только как референс/материал, не перезаливаются 1:1 без прав.

@@ -1,8 +1,43 @@
 ## Активная фича
 
-F24 — GUI вкладка Матчер China (status: todo). Завязки F12/F15/F16/F18 done. F24 не начинался.
+F25 — GUI вкладка Разведка WB + мост в Матчер (status: todo). Завязки F20/F22/F23/F17 done. F25 не начинался.
 
 ## Журнал
+
+### F24 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `gui/app.py`:
+    - `MatcherChinaController` — контроллер вкладки "Матчер China" с dependency injection;
+    - `build_matcher_tab(page, matcher_pipeline=None, downloader=None, output_root=None)` — строит вкладку с инжекцией fake pipeline/downloader для тестов;
+    - `create_app(page, ...)` — создаёт приложение с тёмной темой, вкладка "Матчер China" первая и единственная (selected_index=0);
+    - UI: поле ввода WB артикула/ссылки, кнопка "Фото" (FilePicker), кнопка "Найти", индикатор прогресса, статус, таблица/список кандидатов с thumb/site/title/similarity%/price, кнопки "Открыть"/"Видео"/"Скачать", кнопка "Скачать все видео топ-5";
+    - `_default_matcher_pipeline` — thin wrapper над `matcher.input.resolve_input`, China drivers, `matcher.rank.rank_candidates`, `matcher.video_china.ChinaVideoExtractor`; не вызывается в обычных тестах;
+    - обработка пустого ввода, ошибок pipeline, fallback nm_id=0 для файлов без артикула;
+    - инжектированный `matcher_pipeline`/`downloader` позволяет тестировать без сети и браузера.
+  - `tests/test_gui_matcher.py` — 11 не-live тестов:
+    - `build_tab` создаёт все контролы;
+    - `create_app` устанавливает тёмную тему и первую вкладку "Матчер China";
+    - fake pipeline вызывается при поиске и результаты рендерятся;
+    - similarity отображается как процент;
+    - пустой ввод даёт статус/ошибку;
+    - ошибка pipeline не падает;
+    - кнопка "Скачать" вызывает fake downloader;
+    - "Скачать все видео топ-5" берёт максимум 5 и пропускает кандидатов без видео;
+    - public API import check.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **580 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F24);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F23 не сломаны.
+- **Импорт-чек F24**: `from gui.app import create_app, build_matcher_tab` → **gui matcher ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети и без реального браузера (fake `matcher_pipeline`/`downloader`);
+  - F25/F26/F27/F28 не начаты;
+  - live WB/China может давать 403/капчу — защиту не обходить, AGENTS.md;
+  - push не выполнялся.
+- **Коммит**: `F24: add China matcher GUI tab`.
+- **Следующий шаг**: F25 — GUI вкладка Разведка WB + мост в Матчер.
 
 ### F23 — done + committed (2026-06-17)
 

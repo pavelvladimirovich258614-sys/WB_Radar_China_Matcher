@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F24",
+  "active_feature": "F25",
 
   "features": [
     {
@@ -176,7 +176,7 @@
       "id": "F24",
       "title": "GUI вкладка Матчер China",
       "deps": ["F12", "F15", "F16", "F18"],
-      "status": "todo"
+      "status": "done"
     },
 
     {
