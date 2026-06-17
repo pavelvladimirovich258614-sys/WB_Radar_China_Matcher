@@ -75,6 +75,7 @@ class MatcherChinaController:
         self.download_all_button: ft.Button | None = None
         self.pick_file_button: ft.Button | None = None
         self.search_button: ft.Button | None = None
+        self.content_container: ft.Container | None = None
 
         self._last_candidates: list[Candidate] = []
         self._last_product: Product | None = None
@@ -373,7 +374,12 @@ class MatcherChinaController:
         finally:
             self._show_progress(False)
 
-    def build_tab(self, page: ft.Page) -> ft.Tab:
+    def build_content(self, page: ft.Page) -> ft.Container:
+        """Build the matcher section content (the real, renderable control).
+
+        Flet 0.85 ``ft.Tab`` has no ``content`` field, so the section UI is
+        exposed here as a standalone control for the desktop shell to mount.
+        """
         self.results_column = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
         self.status_text = ft.Text("Готов к поиску", size=12, color=ft.Colors.GREY_400)
         self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.BLUE_GREY_200)
@@ -399,8 +405,19 @@ class MatcherChinaController:
             expand=True,
         )
 
+        container = ft.Container(content=content, padding=16, expand=True)
+        self.content_container = container
+        return container
+
+    def build_tab(self, page: ft.Page) -> ft.Tab:
+        """Build a legacy ft.Tab wrapping the section content.
+
+        Kept for backward compatibility (tests import build_matcher_tab and
+        check ``tab.label``). In Flet 0.85 ``tab.content`` is a no-op.
+        """
+        container = self.build_content(page)
         tab = ft.Tab(label="Матчер China")
-        tab.content = ft.Container(content=content, padding=16)
+        tab.content = container
         return tab
 
 
@@ -438,6 +455,7 @@ class DiscoveryWBController:
         self.status_text: ft.Text | None = None
         self.progress_bar: ft.ProgressBar | None = None
         self.detail_column: ft.Column | None = None
+        self.content_container: ft.Container | None = None
 
         self._last_products: list[ViralProduct] = []
         self._selected_product: ViralProduct | None = None
@@ -710,7 +728,8 @@ class DiscoveryWBController:
         else:
             self._set_status("Мост в Матчер не настроен")
 
-    def build_tab(self, page: ft.Page) -> ft.Tab:
+    def build_content(self, page: ft.Page) -> ft.Container:
+        """Build the discovery section content as a standalone control."""
         self.niche_input = ft.TextField(
             label="Ниша / запрос",
             hint_text="например: фен для волос",
@@ -771,8 +790,15 @@ class DiscoveryWBController:
             expand=True,
         )
 
+        container = ft.Container(content=content, padding=16, expand=True)
+        self.content_container = container
+        return container
+
+    def build_tab(self, page: ft.Page) -> ft.Tab:
+        """Legacy ft.Tab wrapper (kept for backward compatibility)."""
+        container = self.build_content(page)
         tab = ft.Tab(label="Разведка WB")
-        tab.content = ft.Container(content=content, padding=16)
+        tab.content = container
         return tab
 
 
@@ -910,6 +936,236 @@ def build_discovery_tab(
     return controller.build_tab(page), controller
 
 
+SECTION_MATCHER = "matcher"
+SECTION_DISCOVERY = "discovery"
+SECTION_SETTINGS = "settings"
+
+SIDEBAR_WIDTH = 240
+
+# Sidebar nav-button colors.
+_NAV_BG_SELECTED = ft.Colors.with_opacity(0.16, ft.Colors.WHITE)
+_NAV_BG_IDLE = ft.Colors.TRANSPARENT
+_NAV_FG_SELECTED = ft.Colors.WHITE
+_NAV_FG_IDLE = ft.Colors.GREY_300
+
+
+def _safe_update(control: Any) -> None:
+    """Best-effort ``control.update()``.
+
+    Swallowed when the control is not mounted (FakePage in unit tests) so the
+    shell stays testable headlessly, while still pushing changes to the live
+    Flet client in the packaged desktop app.
+    """
+    update = getattr(control, "update", None)
+    if callable(update):
+        try:
+            update()
+        except Exception:
+            pass
+
+
+def build_sidebar_button(
+    *,
+    label: str,
+    icon: Any,
+    selected: bool,
+    on_click: Callable[[ft.ControlEvent], Any] | None,
+) -> ft.Container:
+    """A clickable sidebar navigation entry with a selected/unselected style."""
+    fg = _NAV_FG_SELECTED if selected else _NAV_FG_IDLE
+    return ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(icon, color=fg, size=20),
+                ft.Text(
+                    label,
+                    color=fg,
+                    size=14,
+                    weight=ft.FontWeight.W_500 if selected else ft.FontWeight.W_400,
+                ),
+            ],
+            spacing=12,
+        ),
+        padding=12,
+        border_radius=8,
+        bgcolor=_NAV_BG_SELECTED if selected else _NAV_BG_IDLE,
+        on_click=on_click,
+        expand=True,
+    )
+
+
+def _set_button_selected(button: ft.Container, selected: bool) -> None:
+    """Update a sidebar button's visual selected state in place."""
+    button.bgcolor = _NAV_BG_SELECTED if selected else _NAV_BG_IDLE
+    row = getattr(button, "content", None)
+    for child in getattr(row, "controls", None) or []:
+        if isinstance(child, ft.Icon):
+            child.color = _NAV_FG_SELECTED if selected else _NAV_FG_IDLE
+        elif isinstance(child, ft.Text):
+            child.color = _NAV_FG_SELECTED if selected else _NAV_FG_IDLE
+            child.weight = ft.FontWeight.W_500 if selected else ft.FontWeight.W_400
+    _safe_update(button)
+
+
+class ShellController:
+    """Custom desktop shell: a sidebar with clickable sections and a swappable
+    content area.
+
+    Replaces ``ft.Tabs``, which in Flet 0.85 renders only tab labels in the
+    packaged desktop client (``ft.Tab`` has no ``content`` field; the app must
+    swap the single ``Tabs.content`` itself, which the old code never did).
+    """
+
+    def __init__(self) -> None:
+        self.selected_section: str = SECTION_MATCHER
+        self._sections: list[dict[str, Any]] = []
+        self._by_key: dict[str, dict[str, Any]] = {}
+        self.content_area: ft.Container | None = None
+        self.header_title: ft.Text | None = None
+        self.header_subtitle: ft.Text | None = None
+        self.status_text: ft.Text | None = None
+        self.sidebar_buttons: dict[str, ft.Container] = {}
+        self.root: ft.Control | None = None
+
+    @property
+    def sections(self) -> list[str]:
+        return [s["key"] for s in self._sections]
+
+    @property
+    def section_labels(self) -> dict[str, str]:
+        return {s["key"]: s["label"] for s in self._sections}
+
+    def get_section_content(self, key: str) -> ft.Control | None:
+        section = self._by_key.get(key)
+        return section["content"] if section else None
+
+    def add_section(
+        self,
+        key: str,
+        label: str,
+        subtitle: str,
+        icon: Any,
+        content: ft.Control,
+    ) -> None:
+        section = {
+            "key": key,
+            "label": label,
+            "subtitle": subtitle,
+            "icon": icon,
+            "content": content,
+        }
+        self._sections.append(section)
+        self._by_key[key] = section
+
+    def set_section(self, key: str) -> None:
+        """Switch the active section, swapping the content and updating styles."""
+        if key not in self._by_key:
+            return
+        self.selected_section = key
+        section = self._by_key[key]
+        if self.content_area is not None:
+            self.content_area.content = section["content"]
+            _safe_update(self.content_area)
+        if self.header_title is not None:
+            self.header_title.value = section["label"]
+            _safe_update(self.header_title)
+        if self.header_subtitle is not None:
+            self.header_subtitle.value = section["subtitle"]
+            _safe_update(self.header_subtitle)
+        if self.status_text is not None:
+            self.status_text.value = f"Раздел: {section['label']}"
+            _safe_update(self.status_text)
+        for s in self._sections:
+            btn = self.sidebar_buttons.get(s["key"])
+            if btn is not None:
+                _set_button_selected(btn, selected=(s["key"] == key))
+
+    def build(self, page: ft.Page) -> ft.Control:
+        """Lay out the sidebar + content area and return the root control."""
+        if self.selected_section not in self._by_key:
+            # Fall back to the first registered section (supports shells built
+            # with non-default section keys via build_desktop_shell).
+            self.selected_section = self._sections[0]["key"]
+        nav_items: list[ft.Control] = [
+            ft.Text("WB Radar", size=20, weight=ft.FontWeight.W_700, color=ft.Colors.WHITE),
+            ft.Text("China Matcher & WB Discovery", size=11, color=ft.Colors.GREY_500),
+        ]
+        for section in self._sections:
+            button = build_sidebar_button(
+                label=section["label"],
+                icon=section["icon"],
+                selected=(section["key"] == self.selected_section),
+                on_click=lambda _e, k=section["key"]: self.set_section(k),
+            )
+            self.sidebar_buttons[section["key"]] = button
+            nav_items.append(button)
+
+        sidebar = ft.Container(
+            content=ft.Column(nav_items, alignment=ft.MainAxisAlignment.START, spacing=6),
+            width=SIDEBAR_WIDTH,
+            padding=16,
+            bgcolor=ft.Colors.BLACK,
+            expand=True,
+        )
+
+        self.header_title = ft.Text(
+            "", size=20, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE
+        )
+        self.header_subtitle = ft.Text("", size=12, color=ft.Colors.GREY_400)
+        self.status_text = ft.Text("", size=11, color=ft.Colors.GREY_500)
+        default = self._by_key[self.selected_section]
+        self.content_area = ft.Container(content=default["content"], expand=True)
+
+        header = ft.Column(
+            [
+                ft.Row(
+                    [self.header_title, self.status_text],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                self.header_subtitle,
+            ],
+            spacing=2,
+        )
+        main_area = ft.Container(
+            content=ft.Column(
+                [
+                    header,
+                    ft.Divider(height=1, color=ft.Colors.GREY_800),
+                    self.content_area,
+                ],
+                spacing=10,
+                expand=True,
+            ),
+            expand=True,
+            padding=16,
+        )
+
+        self.root = ft.Row(
+            [sidebar, main_area],
+            expand=True,
+            vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+            spacing=0,
+        )
+        # Populate header/subtitle/status and apply initial button styling.
+        self.set_section(self.selected_section)
+        return self.root
+
+
+def build_desktop_shell(
+    page: ft.Page,
+    sections: list[tuple[str, str, str, Any, ft.Control]],
+) -> ShellController:
+    """Build a ShellController from an ordered list of sections.
+
+    Each section tuple is ``(key, label, subtitle, icon, content)``.
+    """
+    shell = ShellController()
+    for key, label, subtitle, icon, content in sections:
+        shell.add_section(key, label, subtitle, icon, content)
+    shell.build(page)
+    return shell
+
+
 def create_app(
     page: ft.Page,
     *,
@@ -922,27 +1178,33 @@ def create_app(
     review_video_service: ReviewVideoService | None = None,
     matcher_controller: MatcherChinaController | None = None,
     settings_controller: SettingsController | None = None,
-) -> ft.Tabs:
-    """Create the full application with the China matcher tab as default."""
+) -> ShellController:
+    """Create the desktop application shell with the China matcher as default.
+
+    Returns a :class:`ShellController` (the shell is also added to ``page``).
+    """
     page.title = "WB Radar & China Matcher"
     page.theme_mode = ft.ThemeMode.DARK
     page.theme = DEFAULT_THEME
     page.bgcolor = ft.Colors.GREY_900
 
-    matcher_tab, matcher_ctrl = build_matcher_tab(
-        page,
-        matcher_pipeline=matcher_pipeline,
-        downloader=downloader,
-        output_root=output_root,
-    )
     if matcher_controller is not None:
         matcher_ctrl = matcher_controller
+        if matcher_ctrl.content_container is None:
+            matcher_ctrl.build_content(page)
+    else:
+        _matcher_tab, matcher_ctrl = build_matcher_tab(
+            page,
+            matcher_pipeline=matcher_pipeline,
+            downloader=downloader,
+            output_root=output_root,
+        )
 
     def bridge_to_matcher(nm_id: int) -> None:
         matcher_ctrl.set_input_value(str(nm_id))
         matcher_ctrl.focus_input()
 
-    discovery_tab, _discovery_ctrl = build_discovery_tab(
+    _discovery_tab, discovery_ctrl = build_discovery_tab(
         page,
         discovery_service=discovery_service,
         voc_service=voc_service,
@@ -954,19 +1216,39 @@ def create_app(
     )
 
     if settings_controller is not None:
-        settings_tab = settings_controller.build_tab(page)
+        settings_ctrl = settings_controller
+        if settings_ctrl.content_container is None:
+            settings_ctrl.build_content(page)
     else:
-        settings_tab, _settings_ctrl = build_settings_tab(page)
+        _settings_tab, settings_ctrl = build_settings_tab(page)
 
-    tabs = ft.Tabs(
-        content=ft.Column([matcher_tab, discovery_tab, settings_tab], expand=True),
-        length=3,
-        selected_index=0,
-        animation_duration=200,
-        expand=True,
-    )
-    page.add(tabs)
-    return tabs
+    sections = [
+        (
+            SECTION_MATCHER,
+            "Матчер China",
+            "Поиск товара WB на 1688 / Alibaba / Taobao",
+            ft.Icons.MANAGE_SEARCH,
+            matcher_ctrl.content_container,
+        ),
+        (
+            SECTION_DISCOVERY,
+            "Разведка WB",
+            "Вирусные товары, отзывы, хуки и видео из отзывов",
+            ft.Icons.TRENDING_UP,
+            discovery_ctrl.content_container,
+        ),
+        (
+            SECTION_SETTINGS,
+            "Настройки",
+            "Провайдер, модель, прокси, пути и сессии",
+            ft.Icons.SETTINGS,
+            settings_ctrl.content_container,
+        ),
+    ]
+
+    shell = build_desktop_shell(page, sections)
+    page.add(shell.root)
+    return shell
 
 
 def main() -> None:

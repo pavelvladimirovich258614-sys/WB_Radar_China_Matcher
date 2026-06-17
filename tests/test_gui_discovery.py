@@ -91,17 +91,14 @@ def test_controller_build_tab_creates_controls() -> None:
 
 def test_create_app_has_two_tabs_and_matcher_first() -> None:
     page = FakePage()
-    tabs = create_app(page)
+    shell = create_app(page)
 
     assert page.theme_mode == ft.ThemeMode.DARK
-    assert tabs.length == 3
-    assert tabs.selected_index == 0
-    content = tabs.content
-    assert content is not None
-    assert len(content.controls) == 3
-    assert content.controls[0].label == "Матчер China"
-    assert content.controls[1].label == "Разведка WB"
-    assert content.controls[2].label == "Настройки"
+    assert shell.sections == ["matcher", "discovery", "settings"]
+    assert shell.selected_section == "matcher"
+    assert shell.section_labels["matcher"] == "Матчер China"
+    assert shell.section_labels["discovery"] == "Разведка WB"
+    assert shell.section_labels["settings"] == "Настройки"
 
 
 def test_search_with_fake_discovery_renders_results() -> None:
@@ -227,7 +224,7 @@ def test_create_app_bridge_fills_matcher_input() -> None:
     def fake_discovery(query: str) -> ViralResult:
         return ViralResult(query=query, products=[_viral_product(123)])
 
-    tabs = create_app(
+    shell = create_app(
         page,
         discovery_service=fake_discovery,
         voc_service=lambda nm_id: _voc(),
@@ -235,19 +232,19 @@ def test_create_app_bridge_fills_matcher_input() -> None:
         review_video_service=lambda nm_id: _review_videos(),
     )
 
-    content = tabs.content
-    assert content is not None
-    matcher_tab = content.controls[0]
-    discovery_tab = content.controls[1]
+    matcher_content = shell.get_section_content("matcher")
+    discovery_content = shell.get_section_content("discovery")
+    assert matcher_content is not None
+    assert discovery_content is not None
 
-    discovery_controller = _find_discovery_controller(discovery_tab)
+    discovery_controller = _find_discovery_controller(discovery_content)
     discovery_controller.niche_input.value = "фен"
     discovery_controller._on_search(None)
     discovery_controller._select_product(discovery_controller._last_products[0])
     with pytest.warns(RuntimeWarning, match="coroutine"):
         discovery_controller._on_to_matcher(None)
 
-    matcher_input = _find_matcher_input(matcher_tab)
+    matcher_input = _find_matcher_input(matcher_content)
     assert matcher_input.value == "123"
 
 

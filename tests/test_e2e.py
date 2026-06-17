@@ -374,7 +374,7 @@ def test_e2e_create_app_three_tabs_with_fake_services(
     def discovery_service(query: str) -> ViralResult:
         return ViralResult(query=query, products=[])
 
-    tabs = create_app(
+    shell = create_app(
         page,
         matcher_pipeline=fake_matcher_pipeline,
         downloader=fake_downloader,
@@ -384,11 +384,9 @@ def test_e2e_create_app_three_tabs_with_fake_services(
         review_video_service=lambda nm_id: [],
     )
 
-    assert tabs.length == 3
-    assert tabs.selected_index == 0
-    content = tabs.content
-    assert content is not None
-    labels = [c.label for c in content.controls]
+    assert shell.sections == ["matcher", "discovery", "settings"]
+    assert shell.selected_section == "matcher"
+    labels = [shell.section_labels[k] for k in shell.sections]
     assert labels == ["Матчер China", "Разведка WB", "Настройки"]
 
 

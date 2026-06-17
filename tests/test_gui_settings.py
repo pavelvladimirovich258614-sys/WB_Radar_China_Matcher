@@ -74,16 +74,17 @@ def test_build_settings_tab_creates_controls() -> None:
 
 def test_create_app_has_three_tabs_in_order() -> None:
     page = FakePage()
-    tabs = create_app(page)
+    shell = create_app(page)
 
-    assert tabs.length == 3
-    assert tabs.selected_index == 0
-    content = tabs.content
-    assert content is not None
-    assert len(content.controls) == 3
-    assert content.controls[0].label == "Матчер China"
-    assert content.controls[1].label == "Разведка WB"
-    assert content.controls[2].label == "Настройки"
+    assert shell.sections == ["matcher", "discovery", "settings"]
+    assert shell.selected_section == "matcher"
+    assert shell.section_labels == {
+        "matcher": "Матчер China",
+        "discovery": "Разведка WB",
+        "settings": "Настройки",
+    }
+    assert shell.content_area is not None
+    assert shell.content_area.content is not None
 
 
 def test_load_settings_returns_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:

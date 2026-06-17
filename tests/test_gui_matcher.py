@@ -88,18 +88,19 @@ def test_build_matcher_tab_with_fake_pipeline() -> None:
 
 def test_create_app_first_tab_is_matcher() -> None:
     page = FakePage()
-    tabs = create_app(page)
+    shell = create_app(page)
 
     assert page.theme_mode == ft.ThemeMode.DARK
-    assert tabs.length == 3
-    assert tabs.selected_index == 0
-    content = tabs.content
-    assert content is not None
-    assert len(content.controls) == 3
-    assert content.controls[0].label == "Матчер China"
-    assert content.controls[1].label == "Разведка WB"
-    assert content.controls[2].label == "Настройки"
-    assert tabs.selected_index == 0
+    assert shell.sections == ["matcher", "discovery", "settings"]
+    assert shell.selected_section == "matcher"
+    assert shell.section_labels == {
+        "matcher": "Матчер China",
+        "discovery": "Разведка WB",
+        "settings": "Настройки",
+    }
+    # Default content area must not be empty.
+    assert shell.content_area is not None
+    assert shell.content_area.content is not None
 
 
 def test_search_with_fake_pipeline_renders_results() -> None:
@@ -315,9 +316,9 @@ def test_matcher_tab_layout_has_no_filepicker() -> None:
 
 def test_create_app_layout_has_no_filepicker() -> None:
     page = FakePage()
-    tabs = create_app(page)
+    shell = create_app(page)
 
-    walked = _flatten_controls(tabs)
+    walked = _flatten_controls(shell.root)
     assert not any(isinstance(c, ft.FilePicker) for c in walked)
 
 

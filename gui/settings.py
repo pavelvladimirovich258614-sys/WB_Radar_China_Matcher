@@ -197,6 +197,7 @@ class SettingsController:
         self.key_fields: dict[str, ft.TextField] = {}
         self.status_text: ft.Text | None = None
         self.session_status_texts: dict[str, ft.Text] = {}
+        self.content_container: ft.Container | None = None
 
         self._snapshot = SettingsSnapshot()
 
@@ -457,7 +458,8 @@ class SettingsController:
             wrap=True,
         )
 
-    def build_tab(self, _page: ft.Page) -> ft.Tab:
+    def build_content(self, _page: ft.Page) -> ft.Container:
+        """Build the settings section content as a standalone control."""
         self.load_settings()
 
         self.status_text = ft.Text(
@@ -485,8 +487,15 @@ class SettingsController:
             scroll=ft.ScrollMode.AUTO,
         )
 
+        container = ft.Container(content=content, padding=16, expand=True)
+        self.content_container = container
+        return container
+
+    def build_tab(self, _page: ft.Page) -> ft.Tab:
+        """Legacy ft.Tab wrapper (kept for backward compatibility)."""
+        container = self.build_content(_page)
         tab = ft.Tab(label="Настройки")
-        tab.content = ft.Container(content=content, padding=16)
+        tab.content = container
         return tab
 
 
