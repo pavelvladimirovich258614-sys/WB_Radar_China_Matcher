@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="420" viewBox="0 0 920 420">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a202c"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <style>
+      .step { fill:#2d3748; stroke:#4a5568; stroke-width:1.5; rx:8; }
+      .hl { fill:#276749; stroke:#68d391; }
+      .text { fill:#e2e8f0; font-family:Segoe UI,Roboto,Arial,sans-serif; font-size:13px; }
+      .title { fill:#f7fafc; font-weight:600; font-size:14px; }
+      .arrow { stroke:#a0aec0; stroke-width:1.5; fill:none; marker-end:url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a0aec0"/>
+    </marker>
+  </defs>
+  <rect width="920" height="420" fill="url(#bg2)"/>
+
+  <text x="460" y="35" text-anchor="middle" class="title" font-size="18">Matcher China Flow</text>
+
+  <rect x="40" y="70" width="160" height="60" class="step"/>
+  <text x="120" y="95" text-anchor="middle" class="title">User Input</text>
+  <text x="120" y="115" text-anchor="middle" class="text">nmId / WB URL / photo</text>
+
+  <rect x="260" y="70" width="160" height="60" class="step"/>
+  <text x="340" y="95" text-anchor="middle" class="title">resolve_input</text>
+  <text x="340" y="115" text-anchor="middle" class="text">→ query.jpg</text>
+
+  <rect x="480" y="70" width="180" height="60" class="step"/>
+  <text x="570" y="95" text-anchor="middle" class="title">China Drivers</text>
+  <text x="570" y="115" text-anchor="middle" class="text">Alibaba / 1688 / Taobao</text>
+
+  <rect x="720" y="70" width="160" height="60" class="step"/>
+  <text x="800" y="95" text-anchor="middle" class="title">Candidates</text>
+  <text x="800" y="115" text-anchor="middle" class="text">list with thumbs</text>
+
+  <rect x="260" y="180" width="180" height="60" class="step hl"/>
+  <text x="350" y="205" text-anchor="middle" class="title">Ranker</text>
+  <text x="350" y="225" text-anchor="middle" class="text">CLIP + pHash 1:1</text>
+
+  <rect x="500" y="180" width="180" height="60" class="step hl"/>
+  <text x="590" y="205" text-anchor="middle" class="title">Video Extractor</text>
+  <text x="590" y="225" text-anchor="middle" class="text">主图视频 .mp4</text>
+
+  <rect x="740" y="180" width="140" height="60" class="step"/>
+  <text x="810" y="205" text-anchor="middle" class="title">GUI Table</text>
+  <text x="810" y="225" text-anchor="middle" class="text">similarity %</text>
+
+  <rect x="320" y="290" width="180" height="60" class="step"/>
+  <text x="410" y="315" text-anchor="middle" class="title">Download</text>
+  <text x="410" y="335" text-anchor="middle" class="text">videos → nmId folder</text>
+
+  <rect x="580" y="290" width="180" height="60" class="step"/>
+  <text x="670" y="315" text-anchor="middle" class="title">Output</text>
+  <text x="670" y="335" text-anchor="middle" class="text">output/video/<nmId>/</text>
+
+  <!-- arrows -->
+  <path d="M 200 100 L 260 100" class="arrow"/>
+  <path d="M 420 100 L 480 100" class="arrow"/>
+  <path d="M 660 100 L 720 100" class="arrow"/>
+  <path d="M 800 130 L 800 180" class="arrow"/>
+  <path d="M 740 210 L 680 210" class="arrow"/>
+  <path d="M 500 210 L 440 210" class="arrow"/>
+  <path d="M 350 240 L 350 290" class="arrow"/>
+  <path d="M 500 320 L 580 320" class="arrow"/>
+
+  <text x="460" y="390" text-anchor="middle" class="text" font-size="12">No captcha bypass. 403/challenge → manual login or skip source.</text>
+</svg>

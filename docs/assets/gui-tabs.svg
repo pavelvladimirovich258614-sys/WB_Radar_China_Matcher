@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="280" viewBox="0 0 900 280">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a202c"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <style>
+      .tab { fill:#2d3748; stroke:#4a5568; stroke-width:1.5; rx:10; }
+      .active { fill:#553c9a; stroke:#b794f4; }
+      .text { fill:#e2e8f0; font-family:Segoe UI,Roboto,Arial,sans-serif; font-size:14px; }
+      .title { fill:#f7fafc; font-weight:600; font-size:16px; }
+      .panel { fill:#171923; stroke:#4a5568; stroke-width:1; rx:6; }
+    </style>
+  </defs>
+  <rect width="900" height="280" fill="url(#bg4)"/>
+
+  <text x="450" y="35" text-anchor="middle" class="title">Flet Desktop GUI — 3 Tabs</text>
+
+  <!-- tabs -->
+  <rect x="50" y="60" width="240" height="50" class="tab active"/>
+  <text x="170" y="90" text-anchor="middle" class="title">1. Матчер China</text>
+
+  <rect x="330" y="60" width="240" height="50" class="tab"/>
+  <text x="450" y="90" text-anchor="middle" class="title">2. Разведка WB</text>
+
+  <rect x="610" y="60" width="240" height="50" class="tab"/>
+  <text x="730" y="90" text-anchor="middle" class="title">3. Настройки</text>
+
+  <!-- active panel -->
+  <rect x="50" y="130" width="800" height="120" class="panel"/>
+  <text x="80" y="160" class="title">Матчер China (default tab)</text>
+  <text x="80" y="185" class="text">• Input: WB article / URL / photo</text>
+  <text x="80" y="208" class="text">• Results: ranked China candidates with similarity % and video actions</text>
+  <text x="80" y="231" class="text">• Download: top-5 videos organized by nmId</text>
+
+  <text x="460" y="160" class="title">Разведка WB</text>
+  <text x="460" y="185" class="text">• Input: niche query</text>
+  <text x="460" y="208" class="text">• Output: viral products, VoC, hooks, review videos</text>
+  <text x="460" y="231" class="text">• Bridge: send nmId back to Матчер China</text>
+
+  <text x="700" y="160" class="title">Настройки</text>
+  <text x="700" y="185" class="text">• LLM provider + keys</text>
+  <text x="700" y="208" class="text">• Proxy, paths, sessions</text>
+  <text x="700" y="231" class="text">• Masked secrets in UI</text>
+</svg>

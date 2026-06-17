@@ -1,20 +1,77 @@
 # WB Radar & China Matcher
 
-Десктоп-приложение для поставщиков и селлеров Wildberries:
+![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
+![Tests](https://img.shields.io/badge/pytest-620%20passed%2C%201%20skipped-brightgreen)
+![Windows EXE](https://img.shields.io/badge/windows-exe%20build-blue)
+![Security](https://img.shields.io/badge/security-no%20secrets%20committed-success)
+![License: MIT](https://img.shields.io/badge/license-MIT-yellow)
 
-- **Матчер China** — поиск 1:1 товара WB на китайских площадках (Alibaba, 1688, Taobao) и извлечение полочного видео.
-- **Разведка WB** — поиск вирусных товаров по нише, сбор отзывов, VoC-анализ (боли/желания/страхи), генерация хуков и скачивание видео из отзывов.
-- **Настройки** — выбор LLM-провайдера, proxy, папок output/sessions, статус сессий.
+Desktop-инструмент для поставщиков и селлеров Wildberries: ищите товар 1:1 на китайских площадках и разведывайте вирусные продукты на WB.
 
-## Установка
+> [Клонируйте репозиторий](https://github.com/pavelvladimirovich258614-sys/WB_Radar_China_Matcher.git)
 
 ```bash
-# Windows (PowerShell)
-.\init.sh
+git clone https://github.com/pavelvladimirovich258614-sys/WB_Radar_China_Matcher.git
+cd WB_Radar_China_Matcher
+```
 
-# Или вручную
-python -m venv .venv
-.venv\Scripts\activate
+## Какие боли закрывает
+
+- Сложно найти 1:1 поставщика товара на China-площадках.
+- Сложно понять, почему товар на WB продаётся — отзывы разбросаны.
+- Видео из отзывов WB не используется как материал для контента.
+- Ручной анализ WB + China занимает часы.
+- Нет связки «разведка → матчинг → видео → описание → хуки» в одном инструменте.
+
+## Решение
+
+WB Radar & China Matcher — это десктопное приложение с тремя вкладками:
+
+- **Матчер China** — WB товар/фото → поиск 1:1 на Alibaba, 1688, Taobao → рейтинг похожести (CLIP + pHash) → извлечение полочного видео.
+- **Разведка WB** — ниша → вирусные товары → сбор отзывов → VoC-анализ (боли/желания/страхи) → генерация хуков и раскадровки.
+- **Настройки** — выбор LLM-провайдера, proxy, папок, статус сессий, сохранение ключей в `.env.local`.
+
+## Архитектура
+
+![Architecture](docs/assets/architecture.svg)
+
+```text
+core/      — конфиг, модели, WB-клиент, браузер, LLM, storage
+matcher/   — поиск по фото на China-площадках, ранкер, извлечение видео
+harvest/   — разведка WB: вирусные товары, отзывы, VoC, хуки, видео, скачивание
+gui/       — Flet-интерфейс, 3 вкладки
+tests/     — unit, integration, e2e и live smoke tests
+fixtures/  — сохранённые фикстуры ответов
+```
+
+Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Как это работает
+
+### Матчер China
+
+![Matcher Flow](docs/assets/matcher-flow.svg)
+
+Пользователь вводит артикул WB, ссылку или фото. Приложение нормализует вход в `query.jpg`, выполняет поиск по картинке на Alibaba, 1688 и Taobao, ранжирует кандидатов по визуальной похожести, извлекает видео карточек и позволяет скачать топ-5 видео.
+
+### Разведка WB
+
+![Discovery Flow](docs/assets/discovery-flow.svg)
+
+Пользователь вводит нишу. Приложение ищет товары на WB, отбирает топ по отзывам, считает viral score по скорости отзывов, собирает отзывы, прогоняет их через LLM для извлечения болей/желаний/страхов, генерирует хуки и позволяет перекинуть `nmId` обратно в Матчер China.
+
+### GUI
+
+![GUI Tabs](docs/assets/gui-tabs.svg)
+
+## Clone & run
+
+Windows:
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -U pip
 pip install -r requirements.txt
 playwright install chromium
 ```
@@ -28,117 +85,80 @@ GROQ_API_KEY=...
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-## Запуск
+Запуск GUI:
 
-```bash
-.venv\Scripts\python.exe run.py
+```powershell
+python run.py
 ```
 
-## Тесты
+## Windows .exe build
 
-### Обычные тесты
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+```
 
-Запускаются без сети, без реального браузера и без реального LLM. Используют
-сохранённые фикстуры и fake-сервисы.
+Результат:
 
-```bash
+```text
+dist\WB_Radar_China_Matcher\WB_Radar_China_Matcher.exe
+```
+
+В `.exe` не включаются секреты и временные данные. Рядом с `.exe` приложение читает `.env` / `.env.local` и создаёт `sessions/` и `output/`.
+
+Локально собранный exe:
+
+- Path: `dist\WB_Radar_China_Matcher\WB_Radar_China_Matcher.exe`
+- Size: **57.6 MB**
+- SHA256: `EBE3B4D3613E223E773C09C453810136ED254E0A10EB19E1DF416093CF7ED7AC`
+
+> `.exe` не добавляется в git. Для релиза прикрепите его вручную к GitHub Release.
+
+## Testing
+
+Обычные тесты работают без сети, браузера и реального LLM:
+
+```powershell
 .venv\Scripts\python.exe -m pytest -m "not live" -q
 ```
 
-### Live smoke tests
+Результат:
 
-Live-тесты помечены `@pytest.mark.live` и требуют явного ENV-флага. Они могут
-обращаться к реальным публичным эндпоинтам WB и китайским площадкам. WB/China
-могут возвращать 403 или показывать капчу — это **известное ограничение**,
-обход защит не производится.
-
-```bash
-# PowerShell
-$env:WB_RADAR_RUN_LIVE = "1"
-.venv\Scripts\python.exe -m pytest -m live -q
-
-# CMD
-set WB_RADAR_RUN_LIVE=1
-.venv\Scripts\python.exe -m pytest -m live -q
+```text
+620 passed, 1 skipped, 15 deselected
 ```
 
-Live-тесты:
+## Live tests
 
-- `tests/test_e2e.py::test_live_wb_to_discovery_smoke` — базовая проверка
-  реального WB discovery;
-- `tests/test_e2e.py::test_live_matcher_one_product_smoke` — placeholder для
-  ручного сквозного прогона матчера (требует сессий и ключей).
-
-### Первый ручной прогон (опционально)
-
-1. Заполните `.env`.
-2. При необходимости создайте сессии через `core.browser.BrowserManager.manual_login()`.
-3. Запустите live-тесты и проверьте, что сеть не блокирует запросы.
-4. Если видите капчу/403 — см. AGENTS.md, стоп-правила.
-
-## Структура проекта
-
-```
-core/      — конфиг, модели, WB-клиент, браузер, LLM, storage
-matcher/   — поиск по фото на китайских площадках, ранкер, извлечение видео
-harvest/   — разведка WB: вирусные товары, отзывы, VoC, хуки, видео, скачивание
-gui/       — Flet-интерфейс, 3 вкладки
-tests/     — unit, integration, e2e и live smoke tests
-fixtures/  — сохранённые фикстуры ответов
-```
-
-## Сборка Windows .exe
-
-Для сборки desktop `.exe` используется PyInstaller. В `.exe` не включаются
-секреты и временные данные — приложение читает `.env` / `.env.local` и
-создаёт `sessions/` / `output/` рядом с собранным файлом.
-
-### Требования
-
-- Windows 10/11
-- Python 3.11+
-- Git-репозиторий с настроенным `.venv`
-
-### Команда сборки
+Live-тесты помечены `@pytest.mark.live` и требуют флага:
 
 ```powershell
-# PowerShell (из корня репозитория)
-powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
-
-# Без запуска тестов перед сборкой
-powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -SkipTests
-
-# Одним файлом
-powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -OneFile
+$env:WB_RADAR_RUN_LIVE = "1"
+.venv\Scripts\python.exe -m pytest -m live -q
 ```
 
-Скрипт:
+WB/China могут возвращать 403 или показывать капчу — это известное ограничение, обход защит не производится.
 
-1. Проверяет `.venv`.
-2. Устанавливает `pyinstaller`.
-3. Запускает `pytest -m "not live" -q` (если не передан `-SkipTests`).
-4. Собирает `.exe` в `dist/WB_Radar_China_Matcher/`.
-5. Копирует `.env.example` рядом с `.exe`.
+## Security
 
-### Результат
+- API-ключи и сессии хранятся только в `.env` / `.env.local` / `sessions/`.
+- `.env`, `.env.local`, `sessions/`, `output/`, `build/`, `dist/`, `*.exe`, `*.db` не коммитятся.
+- Live-тесты gated через `WB_RADAR_RUN_LIVE=1`.
+- Капчи/антибот/WAF не обходятся.
+- Видео отзывов используются как референс/материал, а не перезаливаются 1:1.
 
-- По умолчанию: `dist/WB_Radar_China_Matcher/WB_Radar_China_Matcher.exe`
-- С `-OneFile`: `dist/WB_Radar_China_Matcher.exe`
+Подробнее: [SECURITY.md](SECURITY.md).
 
-После первого запуска приложение создаст рядом с `.exe` папки `sessions/`
-и `output/` (если их нет), а ключи и сессии пользователь заполняет сам.
+## Known limitations
 
-### Известные ограничения
+- Сборка `.exe` только под Windows (Linux/Mac — Wine/CrossOver, не покрывается скриптом).
+- Первый запуск может потребовать `playwright install chromium`.
+- WB/China live endpoints могут давать 403/капчу — защиту не обходить.
+- ChatGPT-web провайдер (F09) отложен.
 
-- Сборка на Linux/Mac требует Wine/CrossOver и не покрывается этим скриптом.
-- Первый запуск может потребовать `playwright install chromium` или наличия
-  Chromium в `sessions/` / в системе.
-- WB/China могут давать 403/капчу — защиту не обходить, см. AGENTS.md.
+## License
 
-## Безопасность и границы
+[MIT License](LICENSE) © 2026 Pavel Novopoltsev
 
-- Не обходим капчи/антибот/WAF.
-- Публичные эндпоинты WB используются с rate-limit и ретраями.
-- Чужие видеоотзывы не перезаливаются 1:1 — используются как референс/материал.
-- API-ключи и сессии хранятся только в `.env` / `.env.local` / `sessions/` и
-  не коммитятся.
+## Status
+
+F00–F28 завершены (F09 deferred). FULL-E2E-QA: **PASS**. Готов к ручному использованию и публикации.

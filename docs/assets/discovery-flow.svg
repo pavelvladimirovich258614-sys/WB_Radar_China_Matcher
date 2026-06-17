@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="460" viewBox="0 0 920 460">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a202c"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <style>
+      .step { fill:#2d3748; stroke:#4a5568; stroke-width:1.5; rx:8; }
+      .hl { fill:#744210; stroke:#f6e05e; }
+      .text { fill:#e2e8f0; font-family:Segoe UI,Roboto,Arial,sans-serif; font-size:13px; }
+      .title { fill:#f7fafc; font-weight:600; font-size:14px; }
+      .arrow { stroke:#a0aec0; stroke-width:1.5; fill:none; marker-end:url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a0aec0"/>
+    </marker>
+  </defs>
+  <rect width="920" height="460" fill="url(#bg3)"/>
+
+  <text x="460" y="35" text-anchor="middle" class="title" font-size="18">WB Discovery Flow</text>
+
+  <rect x="60" y="70" width="160" height="55" class="step"/>
+  <text x="140" y="95" text-anchor="middle" class="title">Niche Query</text>
+  <text x="140" y="113" text-anchor="middle" class="text">user enters query</text>
+
+  <rect x="280" y="70" width="180" height="55" class="step"/>
+  <text x="370" y="95" text-anchor="middle" class="title">WB Search</text>
+  <text x="370" y="113" text-anchor="middle" class="text">search.wb.ru catalog</text>
+
+  <rect x="520" y="70" width="180" height="55" class="step"/>
+  <text x="610" y="95" text-anchor="middle" class="title">Top-by-feedbacks</text>
+  <text x="610" y="113" text-anchor="middle" class="text">select top N products</text>
+
+  <rect x="760" y="70" width="120" height="55" class="step"/>
+  <text x="820" y="95" text-anchor="middle" class="title">Reviews</text>
+  <text x="820" y="113" text-anchor="middle" class="text">public-feedbacks</text>
+
+  <rect x="100" y="170" width="180" height="55" class="step hl"/>
+  <text x="190" y="195" text-anchor="middle" class="title">Viral Score</text>
+  <text x="190" y="213" text-anchor="middle" class="text">velocity + feedbacks + rating</text>
+
+  <rect x="340" y="170" width="180" height="55" class="step hl"/>
+  <text x="430" y="195" text-anchor="middle" class="title">VoC Analysis</text>
+  <text x="430" y="213" text-anchor="middle" class="text">LLM → pains/desires/fears</text>
+
+  <rect x="580" y="170" width="180" height="55" class="step hl"/>
+  <text x="670" y="195" text-anchor="middle" class="title">Hook Generator</text>
+  <text x="670" y="213" text-anchor="middle" class="text">5 hooks + structure</text>
+
+  <rect x="300" y="270" width="180" height="55" class="step"/>
+  <text x="390" y="295" text-anchor="middle" class="title">Review Videos</text>
+  <text x="390" y="313" text-anchor="middle" class="text">extract video URLs</text>
+
+  <rect x="520" y="270" width="180" height="55" class="step"/>
+  <text x="610" y="295" text-anchor="middle" class="title">Download</text>
+  <text x="610" y="313" text-anchor="middle" class="text">output/video/<nmId>/</text>
+
+  <rect x="380" y="360" width="180" height="55" class="step"/>
+  <text x="470" y="385" text-anchor="middle" class="title">Bridge to Matcher</text>
+  <text x="470" y="403" text-anchor="middle" class="text">nmId → tab 1</text>
+
+  <!-- arrows -->
+  <path d="M 220 97 L 280 97" class="arrow"/>
+  <path d="M 460 97 L 520 97" class="arrow"/>
+  <path d="M 700 97 L 760 97" class="arrow"/>
+  <path d="M 820 125 L 820 170" class="arrow"/>
+  <path d="M 760 197 L 700 197" class="arrow"/>
+  <path d="M 520 197 L 520 170" class="arrow"/>
+  <path d="M 430 225 L 430 270" class="arrow"/>
+  <path d="M 480 297 L 520 297" class="arrow"/>
+  <path d="M 610 325 L 470 360" class="arrow"/>
+
+  <text x="460" y="435" text-anchor="middle" class="text" font-size="12">Review videos are reference material. Generated hooks/descriptions are your own content.</text>
+</svg>
