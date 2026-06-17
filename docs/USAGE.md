@@ -34,6 +34,10 @@ GROQ_API_KEY=...
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
+> Keys may also be placed in `.env.local` (project root) — it is git-ignored
+> and is where the **Настройки** tab writes provider keys. Use the same
+> variable names. Never commit `.env` or `.env.local`.
+
 ## Run the GUI
 
 ```powershell
