@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F18",
+  "active_feature": "F20",
 
   "features": [
     {
@@ -134,7 +134,7 @@
       "id": "F18",
       "title": "Video downloader + организация по nmId",
       "deps": ["F16", "F17"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

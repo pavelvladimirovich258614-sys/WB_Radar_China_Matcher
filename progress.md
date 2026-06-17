@@ -1,10 +1,83 @@
 ## Активная фича
 
-F18 — Video downloader + организация по nmId (status: todo). Завязки F16, F17 done. F18 не начинался.
+F20 — Viral detector (velocity + viral_score) (status: todo). Завязки F04, F05 done. F20 не начинался.
 
 ## Журнал
 
+### F18 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/download.py`:
+    - `VideoDownloadError` base exception;
+    - `VideoHTTPError`, `VideoContentTypeError`, `VideoTooSmallError`, `VideoTimeoutError`, `VideoNetworkError` — специфические ошибки;
+    - `safe_video_filename(source, index, ext)` — `china_1.mp4`, `wb_review_2.mp4` и т.д.;
+    - `video_output_dir(nmId, base_output)` — `output/video/<nmId>/`, создаёт при необходимости;
+    - `download_video(url, nmId, source, ...)` — httpx stream с retry (tenacity) на timeout/network/transport, `.part` → rename, cleanup при ошибках, проверка content-type и min_bytes, возвращает `VideoAsset`;
+    - `download_videos(items, nmId, source, ...)` — batch, пропускает ошибки, инкрементный index.
+  - `tests/test_download.py` — 21 не-live тест:
+    - `safe_video_filename` (стандартные имена, нормализация index/ext, санитайз source);
+    - `video_output_dir` (создание, повторный вызов);
+    - `download_video`: успешное скачивание через fake httpx stream; путь `output/video/<nmId>/<source>_<i>.mp4`; возвращается `VideoAsset`; source `china` и `wb_review`; `application/octet-stream` допускается; плохой status → `VideoHTTPError`; слишком маленький файл → `VideoTooSmallError` + нет `.part`; неверный content-type → `VideoContentTypeError`; пустой URL → `VideoDownloadError`; video-расширение bypass'ит content-type; инжектированный клиент не закрывается.
+    - `download_videos`: batch возвращает список assets; ошибка одного не останавливает batch.
+    - public API import check.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **477 passed, 1 skipped, 12 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F18);
+  - deselected: 12 live-тестов (Alibaba/1688/Taobao/WB);
+  - F00–F17 не сломаны.
+- **Импорт-чек**: `from harvest.download import download_video, download_videos` → **download ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты не скачивают реальные видео (fake httpx client/stream);
+  - чужие видеоотзывы сохраняются как референс/материал, не перезаливаются 1:1 без прав;
+  - F19/F20/GUI не начаты;
+  - push не выполнялся.
+- **Коммит**: `F18: add video downloader`.
+- **Следующий шаг**: F20 — Viral detector (velocity + viral_score).
+
 ### F17 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/review_video.py`:
+    - `ReviewVideoItem` — dataclass-style модель с `review_id`, `nmId`, `rating`, `text`, `video_url`, `pros`, `cons`, `to_dict()`;
+    - `extract_review_videos_from_reviews(reviews)` — фильтр отзывов с `video_url`, сортировка по полезности (текст/pros/cons + высокий рейтинг), битые отзывы логируются и пропускаются;
+    - `get_review_videos(nmId, wb_client=None, max_count=1000, detail_provider=None)`:
+      - resolve `nmId` → `imtId` (через `WBPublic.get_detail` или инжектированный `detail_provider`);
+      - вызывает `WBPublic.get_reviews(imtId, max_count)`;
+      - возвращает отсортированный список `ReviewVideoItem`;
+      - созданный по умолчанию `WBPublic` закрывается, инжектированный — нет.
+  - `tests/test_review_video.py` — 15 не-live тестов + 1 live-gated:
+    - `ReviewVideoItem` fields/defaults/to_dict;
+    - фильтрация только видео-отзывов;
+    - пустой список → [];
+    - сортировка: текст + высокий rating выше;
+    - pros/cons считаются как текст;
+    - битый отзыв пропускается, не падает;
+    - `get_review_videos` с fake `WBPublic`:
+      - detail → reviews pipeline;
+      - `detail_provider` bypass;
+      - пустой результат при отсутствии `imtId`;
+      - пустой результат при отсутствии видео-отзывов;
+      - сортировка;
+      - `max_count` передаётся в `get_reviews`;
+      - инжектированный клиент не закрывается.
+    - public API import check;
+    - live smoke под `@pytest.mark.live` + `WB_TEST_NMID` env.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **456 passed, 1 skipped, 12 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F17);
+  - deselected: 11 live-тестов (Alibaba/1688/Taobao + WB) + 1 новый live F17 = 12;
+  - F00–F16 не сломаны.
+- **Импорт-чек**: `from harvest.review_video import get_review_videos, extract_review_videos_from_reviews` → **review video ok**.
+- **Безопасность / ограничения**:
+  - видео не скачивается (это F18);
+  - чужие видеоотзывы используются как референс/материал, не перезаливаются 1:1 без прав (напоминание AGENTS.md);
+  - обычные тесты без сети;
+  - live-тест под env-гейтом `WB_TEST_NMID`;
+  - F18/F19/F20/GUI не начаты.
+- **Коммит**: `F17: add WB review video harvester`.
+- **Следующий шаг**: F18 — Video downloader + организация по nmId.
+
+### F16 — done + committed (2026-06-17)
 
 - **Файлы**:
   - `harvest/review_video.py`:
