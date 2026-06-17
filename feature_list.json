@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F27",
+  "active_feature": "F28",
 
   "features": [
     {
@@ -197,7 +197,7 @@
       "id": "F27",
       "title": "End-to-end + интеграционные тесты",
       "deps": ["F24", "F25", "F26"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

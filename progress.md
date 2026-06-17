@@ -1,8 +1,44 @@
 ## Активная фича
 
-F27 — End-to-end + интеграционные тесты (status: todo). Завязки F24/F25/F26 done. F27 не начинался.
+F28 — Сборка .exe (flet pack) + проверка на чистой машине (status: todo). Завязка F27 done. F28 не начиналась.
 
 ## Журнал
+
+### F27 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `tests/test_e2e.py` — 6 не-live E2E/интеграционных тестов + 2 live smoke-теста:
+    - `test_e2e_matcher_happy_path`: WB артикул (fake) → `build_matcher_tab` → fake `matcher_pipeline` возвращает товар и кандидатов → top candidate содержит `video_url` → `_download_one` вызывает fake `downloader` → проверяем вызов и статус "Скачано видео: 1";
+    - `test_e2e_matcher_ranker_orders_candidates`: генерирует RGB-изображение в `tmp_path`, создаёт кандидата с тем же thumb → `rank_candidates(use_clip=False, use_phash=True)` возвращает кандидата с `similarity > 0.95`;
+    - `test_e2e_discovery_happy_path`: fake `ViralProduct` → `analyze_reviews_voc` с fake LLM → VoC содержит "Шумит"/"Лёгкий" → `generate_hooks` с fake LLM → 5 хуков → `extract_review_videos_from_reviews` находит видеоотзыв;
+    - `test_e2e_discovery_gui_bridge_fills_matcher_input`: fake discovery/voc/hooks/review_video services + bridge callback → выбор товара → кнопка "В Матчер" заполняет поле `MatcherChinaController`;
+    - `test_e2e_create_app_three_tabs_with_fake_services`: `create_app` с fake сервисами строит 3 вкладки, первая — "Матчер China";
+    - `test_e2e_fake_llm_not_real_llm`: `analyze_reviews_voc` с fake `LLMProvider` не выходит в сеть;
+    - live-тесты:
+      - `test_live_wb_to_discovery_smoke`: `@pytest.mark.live`, `pytest.skip` без `WB_RADAR_RUN_LIVE=1`, вызывает `harvest.discovery.niche` с `pages=1, top_n=2`;
+      - `test_live_matcher_one_product_smoke`: `@pytest.mark.live`, `pytest.skip` без флага + дополнительный `pytest.skip` с пояснением, что требует ручных сессий.
+  - `README.md` (новый):
+    - описание проекта и 3 вкладок;
+    - инструкция по установке через `init.sh`;
+    - `.env.example` и запуск;
+    - секции "Тесты": обычные (`pytest -m "not live" -q`) и live smoke tests с `WB_RADAR_RUN_LIVE=1`;
+    - примечания по безопасности и границам (без обхода защит, 403/капча — known issue).
+- **Тесты**:
+  - `pytest -m "not live" -q` → **609 passed, 1 skipped, 15 deselected**.
+  - +6 passed по `tests/test_e2e.py` в не-live прогоне;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F27);
+  - deselected: 15 live-тестов (Alibaba/1688/Taobao/WB + discovery + 2 новых e2e live);
+  - F00–F26 не сломаны.
+- **Импорт-чек F27**: `from gui.app import create_app; from harvest.discovery import niche; from harvest.hooks import generate_hooks` → **e2e imports ok**.
+- **Безопасность / ограничения**:
+  - обычные e2e-тесты без сети, без реального браузера, без реального LLM;
+  - live-тесты gated через `WB_RADAR_RUN_LIVE=1` и `@pytest.mark.live`;
+  - live-тесты не обходят капчи/антибот/WAF;
+  - `.env` / `sessions/` / `output/` / `.venv/` / `*.db` / `__pycache__/` не tracked;
+  - F28 не начиналась;
+  - push не выполнялся.
+- **Коммит**: `F27: add end-to-end integration tests`.
+- **Следующий шаг**: F28 — сборка .exe.
 
 ### F26 — done + committed (2026-06-17)
 

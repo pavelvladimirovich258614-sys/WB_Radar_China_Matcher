@@ -1,38 +1,30 @@
 # Session Handoff — WB Radar & China Matcher
 
-## F26 — done: GUI настройки
+## F27 — done: End-to-end + интеграционные тесты
 
-**Последняя фича**: F26 — done.
-**Active feature**: F27 — End-to-end + интеграционные тесты (status: todo, не начат).
+**Последняя фича**: F27 — done.
+**Active feature**: F28 — Сборка .exe (flet pack) + проверка на чистой машине (status: todo, не начат).
 
 ## Что сделано
 
-- `gui/settings.py` (новый):
-  - `LLM_PROVIDERS` = openrouter/zai/groq/ollama/chatgpt_web;
-  - `PROVIDER_SECRET_KEY` — имя env-переменной для каждого провайдера;
-  - `SettingsSnapshot` — read-only snapshot настроек для GUI;
-  - `mask_secret(value)` — маскирует секрет (показывает первые 2 и последние 4 символа);
-  - `SettingsController` с DI: `save_settings`, `open_folder`, `session_status`, `on_status`;
-  - `load_settings()` — читает `core.config.settings` и статусы сессий 1688/Taobao/ChatGPT;
-  - `validate_settings()` — проверяет провайдер, proxy (urlparse), output/sessions paths;
-  - `save_settings_to_disk()` — валидирует и вызывает injectable storage;
-  - UI-секции: LLM provider + model, proxy, output/sessions paths, "Ключи / сессии" (masked password-поля), "Статус сессий", кнопки "Проверить настройки", "Сохранить", "Открыть output", "Открыть sessions", статус.
-  - `_default_save_settings` пишет в `.env.local` (untracked) и обновляет in-process `settings.llm.provider/model`, `settings.proxy`;
-  - `_default_open_folder` создаёт папку и открывает через explorer/open/xdg-open (fallback webbrowser);
-  - `_default_session_status` проверяет непустую папку в `sessions/<site>`.
-- `gui/app.py` (расширен):
-  - re-export `SettingsController`, `build_settings_tab`;
-  - `create_app(...)` теперь создаёт 3 вкладки в порядке: Матчер China, Разведка WB, Настройки;
-  - первая вкладка остаётся Матчер China (`selected_index=0`);
-  - параметр `settings_controller` для DI.
-- `tests/test_gui_settings.py` — 13 не-live тестов:
-  - build_settings_tab, 3 вкладки, load_settings, mask_secret, validate bad proxy, save fake storage, save failure, session statuses, validate button, open output, open sessions failure, masked API key display, public API import.
-- `tests/test_gui_matcher.py` и `tests/test_gui_discovery.py` обновлены: `create_app` теперь 3 вкладки.
+- `tests/test_e2e.py` — 6 не-live E2E/интеграционных тестов + 2 live smoke-теста:
+  - `test_e2e_matcher_happy_path`: fake `matcher_pipeline` + fake `downloader` → матчер доходит до скачивания top-кандидата;
+  - `test_e2e_matcher_ranker_orders_candidates`: используется реальный `rank_candidates` на двух одинаковых сгенерированных изображениях (pHash-only, без CLIP);
+  - `test_e2e_discovery_happy_path`: fake `ViralProduct` → VoC (fake LLM) → hooks (fake LLM) → видео из отзывов;
+  - `test_e2e_discovery_gui_bridge_fills_matcher_input`: мост "В Матчер" заполняет input первой вкладки;
+  - `test_e2e_create_app_three_tabs_with_fake_services`: `create_app` строит 3 вкладки с fake сервисами;
+  - `test_e2e_fake_llm_not_real_llm`: убедиться, что fake LLM действительно используется;
+  - live-тесты `test_live_wb_to_discovery_smoke` и `test_live_matcher_one_product_smoke` под `@pytest.mark.live` + `WB_RADAR_RUN_LIVE=1`.
+- `README.md` (новый):
+  - описание приложения и 3 вкладок;
+  - установка через `init.sh`;
+  - `.env.example` и запуск;
+  - секции обычных и live-тестов;
+  - безопасность и границы.
 
 ## Что НЕ доделано / known issues
 
-- **F27 — End-to-end + интеграционные тесты** — следующий шаг;
-- **F28 — сборка .exe** не начиналась;
+- **F28 — Сборка .exe (flet pack) + проверка на чистой машине** — следующий шаг;
 - live WB/China/LLM может давать 403/капчу — защиту не обходить (AGENTS.md);
 - Чужие видеоотзывы сохраняются как референс/материал, не перезаливаются 1:1 без прав;
 - API-ключи LLM только в `.env` / `.env.local`, не коммитить;
@@ -40,25 +32,25 @@
 
 ## Результаты проверки
 
-- `pytest -m "not live" -q` → **603 passed, 1 skipped, 13 deselected**.
-- skipped: WebP/Pillow из F11 (platform-specific, не баг F26).
-- deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery).
-- Импорт-чек F26: `from gui.app import create_app, build_matcher_tab, build_discovery_tab, build_settings_tab` → **gui settings ok**.
-- F00–F25 не сломаны.
+- `pytest -m "not live" -q` → **609 passed, 1 skipped, 15 deselected**.
+- skipped: WebP/Pillow из F11 (platform-specific, не баг F27).
+- deselected: 15 live-тестов (Alibaba/1688/Taobao/WB + discovery + 2 e2e live).
+- Импорт-чек F27: `from gui.app import create_app; from harvest.discovery import niche; from harvest.hooks import generate_hooks` → **e2e imports ok**.
+- F00–F26 не сломаны.
 
 ## VCS
 
-- Последний коммит F26: `F26: add GUI settings tab`.
+- Последний коммит F27: `F27: add end-to-end integration tests`.
 - Working tree чист, кроме разрешённых untracked `handoff_f15_sa1.md`, `handoff_f15_sa2.md`.
 - Push не выполнялся.
 
 ## Следующий шаг
 
-F27 — End-to-end + интеграционные тесты. Ждёт подтверждения «ОК F27».
+F28 — Сборка .exe (flet pack) + проверка на чистой машине. Ждёт подтверждения «ОК F28».
 
 ## Known issues / constraints
 
-- **F27/F28 не начинались**.
+- **F28 не начиналась**.
 - **Реальные LLM-запросы** требуют ключей в `.env` — никогда не коммитить ключи.
 - **WB live** может давать 403 из текущего окружения — стоп-правило AGENTS.md, защиту не обходить.
 - **Чужие видеоотзывы** сохраняются только как референс/материал, не перезаливаются 1:1 без прав.
