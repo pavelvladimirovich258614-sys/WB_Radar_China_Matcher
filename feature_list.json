@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F19",
+  "active_feature": "F24",
 
   "features": [
     {
@@ -141,7 +141,7 @@
       "id": "F19",
       "title": "Description writer (LLM: описание/подводка под видео)",
       "deps": ["F08", "F18", "F22"],
-      "status": "todo"
+      "status": "done"
     },
 
     {
@@ -169,7 +169,7 @@
       "id": "F23",
       "title": "Hook generator (.md хуки + структура ролика)",
       "deps": ["F22"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

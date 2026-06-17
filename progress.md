@@ -1,8 +1,86 @@
 ## Активная фича
 
-F19 — Description writer (LLM: описание/подводка под видео) (status: todo). Завязки F08, F18, F22 done. F19 не начинался.
+F24 — GUI вкладка Матчер China (status: todo). Завязки F12/F15/F16/F18 done. F24 не начинался.
 
 ## Журнал
+
+### F23 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/hooks.py`:
+    - `VideoHookSet` pydantic-модель: `hooks` (5 вариантов), `structure` (список `Scene`), `objections`;
+    - `Scene` pydantic-модель: `scene`, `duration`, `content`;
+    - `HookGeneratorError` / `HookResponseError`;
+    - `build_hooks_prompt(voc, product=None)` — prompt на основе VoC и опционально товара;
+    - `_HOOKS_JSON_SCHEMA` — JSON schema с required `hooks`/`structure`/`objections`;
+    - `parse_hooks_response(raw)` — валидация + fallback на битый/неполный LLM-ответ: 5 дефолтных хуков, структура по умолчанию, возражения по умолчанию;
+    - `save_hooks(nm_id, hook_set, output_root)` — сохраняет `output/hooks/<nmId>.md`;
+    - `generate_hooks(voc, nm_id=None, product=None, llm_provider=None, output_root=None)` — pipeline: prompt → `complete_json` → parse → save (если nm_id задан) → return `VideoHookSet`; при ошибке LLM → fallback без падения;
+    - инжектированный LLM-провайдер не закрывается, дефолтный — закрывается.
+  - `tests/test_hooks.py` — 14 не-live тестов:
+    - `build_hooks_prompt` содержит VoC + товар;
+    - `generate_hooks` вызывает fake LLM и сохраняет `hooks/<nmId>.md`;
+    - валидный fake response → `VideoHookSet` с 5 хуками, структурой и возражениями;
+    - `hooks` содержит ровно 5 вариантов;
+    - структура рендерится таблицей в Markdown;
+    - возражения сохраняются;
+    - неполный ответ LLM → fallback без падения;
+    - пустой VoC не валит генерацию;
+    - без `nm_id` файл не сохраняется;
+    - инжектированный провайдер не закрывается, дефолтный — закрывается.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **569 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F23);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F22 не сломаны.
+- **Импорт-чек F23**: `from harvest.hooks import generate_hooks, save_hooks, build_hooks_prompt` → **hooks ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети и без реального LLM (fake `LLMProvider`);
+  - F24/F25/F26 GUI не начаты;
+  - API-ключи не в коде, читаются из `.env` через `core.llm.get_provider`;
+  - чужие видеоотзывы используются как референс/материал, не перезаливаются 1:1;
+  - push не выполнялся.
+- **Коммит**: `F23: add hook generator`.
+- **Следующий шаг**: F24 — GUI вкладка Матчер China.
+
+### F19 — done + committed (2026-06-17)
+
+- **Файлы**:
+  - `harvest/describe.py`:
+    - `VideoDescription` pydantic-модель: `title`, `description`, `captions` (3 варианта), `tags`;
+    - `DescriptionWriterError` / `DescriptionResponseError`;
+    - `build_description_prompt(video_asset, product, voc)` — prompt для LLM с данными товара, видео и VoC;
+    - `_DESCRIPTION_SCHEMA` — JSON schema с required полями;
+    - `parse_description_response(raw)` — валидация/нормализация ответа LLM: неполный/битый ответ → безопасный fallback (`title` default, 3 пустых `captions`, пустые `tags`);
+    - `save_description(nm_id, description, output_root)` — сохраняет `output/video/<nmId>/description.json` через `Storage.save_json` (`ensure_ascii=False`, `indent=2`) и `output/video/<nmId>/description.md`;
+    - `_render_description_md()` — читаемый markdown: заголовок, описание, пронумерованные подводки, теги с `#`;
+    - `describe_video(video_asset, product, voc, llm_provider=None, output_root=None)` — pipeline: prompt → `complete_json` → parse → save JSON+MD → return `VideoDescription`; при ошибке LLM → fallback без падения;
+    - инжектированный LLM-провайдер не закрывается, дефолтный — закрывается.
+  - `tests/test_describe.py` — 12 не-live тестов:
+    - `build_description_prompt` содержит Product + VoC + VideoAsset;
+    - `describe_video` вызывает fake LLM и сохраняет `description.json` + `description.md`;
+    - валидный fake response → `VideoDescription` с title/captions/tags;
+    - сохраняются JSON и MD в `output/video/<nmId>/`;
+    - `captions` содержит ровно 3 варианта;
+    - tags сохраняются;
+    - неполный ответ LLM → fallback без падения;
+    - пустой VoC не валит генерацию;
+    - битый ответ LLM → fallback;
+    - инжектированный провайдер не закрывается, дефолтный — закрывается.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **555 passed, 1 skipped, 13 deselected**.
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F19);
+  - deselected: 13 live-тестов (Alibaba/1688/Taobao/WB + discovery);
+  - F00–F22 не сломаны.
+- **Импорт-чек F19**: `from harvest.describe import describe_video, build_description_prompt, save_description` → **describe ok**.
+- **Безопасность / ограничения**:
+  - обычные тесты без сети и без реального LLM (fake `LLMProvider`);
+  - F23/GUI не начаты;
+  - API-ключи не в коде, читаются из `.env` через `core.llm.get_provider`;
+  - описание пишется своё, чужие видеоотзывы используются как референс/материал;
+  - push не выполнялся.
+- **Коммит**: `F19: add video description writer`.
+- **Следующий шаг**: F23 — Hook generator (.md хуки + структура ролика).
 
 ### F22 — done + committed (2026-06-17)
 
