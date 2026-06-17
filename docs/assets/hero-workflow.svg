@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520">
+  <defs>
+    <linearGradient id="heroBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <style>
+      .box { rx:10; ry:10; stroke-width:1.5; }
+      .text { fill:#f1f5f9; font-family:Segoe UI,Roboto,Arial,sans-serif; font-size:13px; }
+      .title { fill:#ffffff; font-weight:700; font-size:15px; }
+      .label { fill:#cbd5e1; font-size:12px; }
+      .arrow { stroke:#94a3b8; stroke-width:2; fill:none; marker-end:url(#heroArrow); }
+      .join { stroke:#94a3b8; stroke-width:2; fill:none; marker-end:url(#heroArrow); }
+    </style>
+    <marker id="heroArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="960" height="520" fill="url(#heroBg)" rx="12" ry="12"/>
+
+  <!-- Header -->
+  <rect x="300" y="25" width="360" height="55" class="box" fill="#1e293b" stroke="#334155"/>
+  <text x="480" y="45" text-anchor="middle" class="title" font-size="17">WB Radar &amp; China Matcher</text>
+  <text x="480" y="65" text-anchor="middle" class="label">Desktop workflow for WB sellers &amp; China sourcing</text>
+
+  <!-- Left branch header -->
+  <text x="205" y="110" text-anchor="middle" class="title" fill="#22d3ee">Матчер China</text>
+
+  <!-- Left branch boxes -->
+  <rect x="85" y="130" width="240" height="40" class="box" fill="#0c4a6e" stroke="#38bdf8"/>
+  <text x="205" y="155" text-anchor="middle" class="text">WB product / photo / URL</text>
+
+  <rect x="85" y="185" width="240" height="40" class="box" fill="#0c4a6e" stroke="#38bdf8"/>
+  <text x="205" y="210" text-anchor="middle" class="text">China Matcher</text>
+
+  <rect x="85" y="240" width="240" height="40" class="box" fill="#0c4a6e" stroke="#38bdf8"/>
+  <text x="205" y="265" text-anchor="middle" class="text">Alibaba / 1688 / Taobao</text>
+
+  <rect x="85" y="295" width="240" height="40" class="box" fill="#0c4a6e" stroke="#38bdf8"/>
+  <text x="205" y="320" text-anchor="middle" class="text">CLIP + pHash ranking</text>
+
+  <rect x="85" y="350" width="240" height="40" class="box" fill="#0c4a6e" stroke="#38bdf8"/>
+  <text x="205" y="375" text-anchor="middle" class="text">Video extractor &amp; downloader</text>
+
+  <!-- Right branch header -->
+  <text x="755" y="110" text-anchor="middle" class="title" fill="#e879f9">Разведка WB</text>
+
+  <!-- Right branch boxes -->
+  <rect x="635" y="130" width="240" height="40" class="box" fill="#581c87" stroke="#e879f9"/>
+  <text x="755" y="155" text-anchor="middle" class="text">WB niche / product research</text>
+
+  <rect x="635" y="185" width="240" height="40" class="box" fill="#581c87" stroke="#e879f9"/>
+  <text x="755" y="210" text-anchor="middle" class="text">Viral detector</text>
+
+  <rect x="635" y="240" width="240" height="40" class="box" fill="#581c87" stroke="#e879f9"/>
+  <text x="755" y="265" text-anchor="middle" class="text">Reviews collector</text>
+
+  <rect x="635" y="295" width="240" height="40" class="box" fill="#581c87" stroke="#e879f9"/>
+  <text x="755" y="320" text-anchor="middle" class="text">VoC analyzer — боли / желания / страхи</text>
+
+  <rect x="635" y="350" width="240" height="40" class="box" fill="#581c87" stroke="#e879f9"/>
+  <text x="755" y="375" text-anchor="middle" class="text">Hook + description generator</text>
+
+  <!-- Result block -->
+  <rect x="300" y="420" width="360" height="75" class="box" fill="#064e3b" stroke="#34d399"/>
+  <text x="480" y="442" text-anchor="middle" class="title" fill="#6ee7b7">Результат</text>
+  <text x="480" y="465" text-anchor="middle" class="label">1:1 supplier match • viral insights • review videos</text>
+  <text x="480" y="482" text-anchor="middle" class="label">hooks • descriptions • desktop workflow</text>
+
+  <!-- Arrows -->
+  <!-- Left branch vertical -->
+  <path d="M 205 170 L 205 185" class="arrow"/>
+  <path d="M 205 225 L 205 240" class="arrow"/>
+  <path d="M 205 280 L 205 295" class="arrow"/>
+  <path d="M 205 335 L 205 350" class="arrow"/>
+
+  <!-- Right branch vertical -->
+  <path d="M 755 170 L 755 185" class="arrow"/>
+  <path d="M 755 225 L 755 240" class="arrow"/>
+  <path d="M 755 280 L 755 295" class="arrow"/>
+  <path d="M 755 335 L 755 350" class="arrow"/>
+
+  <!-- Branches to result -->
+  <path d="M 205 390 L 205 415" class="join"/>
+  <path d="M 755 390 L 755 415" class="join"/>
+  <path d="M 205 415 L 300 457" class="join"/>
+  <path d="M 755 415 L 660 457" class="join"/>
+
+  <!-- Branch labels -->
+  <text x="205" y="405" text-anchor="middle" class="label" fill="#38bdf8">videos + candidates</text>
+  <text x="755" y="405" text-anchor="middle" class="label" fill="#e879f9">insights + content</text>
+</svg>

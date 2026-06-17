@@ -8,6 +8,10 @@
 
 Desktop-инструмент для поставщиков и селлеров Wildberries: ищите товар 1:1 на китайских площадках и разведывайте вирусные продукты на WB.
 
+![WB Radar workflow](docs/assets/hero-workflow.svg)
+
+> End-to-end workflow: from WB product research to China matching, review mining, hooks and video assets.
+
 > [Клонируйте репозиторий](https://github.com/pavelvladimirovich258614-sys/WB_Radar_China_Matcher.git)
 
 ```bash
