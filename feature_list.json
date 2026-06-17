@@ -1,7 +1,7 @@
 {
   "project": "WB Radar & China Matcher",
 
-  "active_feature": "F16",
+  "active_feature": "F17",
 
   "features": [
     {
@@ -120,7 +120,7 @@
       "id": "F16",
       "title": "China video extractor (主图视频 .mp4)",
       "deps": ["F06", "F15"],
-      "status": "todo"
+      "status": "done"
     },
 
     {

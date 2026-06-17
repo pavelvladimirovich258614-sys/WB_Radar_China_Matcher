@@ -1,10 +1,60 @@
 ## Активная фича
 
-F16 — China video extractor (主图视频 .mp4) (status: todo). Завязки F06, F15 done. F16 не начинался.
+F17 — WB review-video harvester (видео из отзывов) (status: todo). Завязка F05 done. F17 не начинался.
 
 ## Журнал
 
-## Журнал
+### F16 — done + committed (2026-06-17)
+
+- **Саб-агенты**: эстафета 1→2→3→4→5 (PLAN → BUILD HTML parsers → BUILD Playwright extractor → TESTS → REVIEW/DOCS/FINALIZE).
+- **Файлы**:
+  - `matcher/video_china.py` — извлечение 主图视频 из китайских карточек:
+    - иерархия ошибок `VideoExtractError` → `VideoNotFoundError`;
+    - `normalize_video_url` — absolute/protocol-relative/relative + base, фильтр `javascript:/data:/blob:`, раскодирование `\u002F`;
+    - `looks_like_video_url` — `.mp4/.m3u8/.mov/.webm`, маркеры `cloud.video.taobao`, `video.taobao`, `vod`, `alicdn`, `cloud.video`;
+    - `extract_video_urls_from_html` — `<video>/<source>` `src`/`data-src`, JSON/escaped URL в `<script>`, дедуп;
+    - `pick_best_video_url` — `.mp4` > `.mov/.webm` > `.m3u8`;
+    - `extract_video_url_from_html` — композиция;
+    - `ChinaVideoExtractor`:
+      - lazy `BrowserManager` (DI или создание при необходимости);
+      - `extract_from_candidate` — открывает `candidate.url`, ждёт, detect_captcha → skip без обхода, HTML + network fallback, возвращает `model_copy(update={"has_video": ..., "video_url": ...})`;
+      - `extract_for_candidates`/`extract_china_videos` — batch top-N, ошибка одного не валит batch;
+      - `close`/`__enter__`/`__exit__` — закрывает только owned browser.
+  - `tests/test_video_china.py` — 62 не-live теста:
+    - ошибки;
+    - `normalize_video_url` (absolute, http→https, protocol-relative, relative + base, javascript/data/blob, escaped URL);
+    - `looks_like_video_url` (mp4/m3u8/mov/webm/CDN True; jpg/png/gif/webp/pdf False);
+    - HTML extraction (video tag, source tag, script JSON, escaped URL, no video, m3u8, dedup);
+    - `pick_best_video_url`;
+    - `ChinaVideoExtractor` на fake `BrowserManager`/`Page`:
+      - no URL/empty URL → no video;
+      - video tag/script JSON/m3u8 → has_video=True + video_url;
+      - captcha detected → no video, no bypass;
+      - network URL fallback;
+      - broken browser → no video, не падает;
+      - top_n default/override;
+      - batch: one error does not stop batch;
+      - original Candidate не мутируется;
+      - close/context manager;
+    - public alias `extract_china_videos`.
+  - `fixtures/china_video_video_tag.html`, `china_video_script_json.html`, `china_video_no_video.html`, `china_video_m3u8.html`.
+- **Тесты**:
+  - `pytest -m "not live" -q` → **441 passed, 1 skipped, 11 deselected**;
+  - skipped: WebP/Pillow из F11 (platform-specific, не баг F16);
+  - deselected: 11 live-тестов Alibaba/1688/Taobao + ранее существовавшие live;
+  - F00–F15 не сломаны.
+- **Импорт-чеки**:
+  - `from matcher.video_china import ChinaVideoExtractor, extract_china_videos, extract_video_url_from_html` → **video china ok**;
+  - `from matcher.rank import ChinaCandidateRanker` → **f15 still ok**.
+- **Безопасность / ограничения**:
+  - капча только detect/skip, без обхода;
+  - stealth не используется;
+  - видео не скачивается (это F18);
+  - обычные тесты без сети и без реального браузера;
+  - F17/F18/GUI не начаты;
+  - China drivers F12/F13/F14 не тронуты.
+- **Коммит**: `F16: add China video extractor`.
+- **Следующий шаг**: F17 — WB review-video harvester (видео из отзывов).
 
 ### F15 — done + committed (2026-06-17)
 
