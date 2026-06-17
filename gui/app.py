@@ -133,7 +133,7 @@ class MatcherChinaController:
             on_click=self._on_pick_file,
         )
         self.file_picker = ft.FilePicker()
-        page.overlay.append(self.file_picker)
+        page.services.append(self.file_picker)
 
         return ft.Row(
             [
@@ -144,24 +144,44 @@ class MatcherChinaController:
             spacing=12,
         )
 
-    def _on_pick_file(self, _event: ft.ControlEvent) -> None:
-        if self.file_picker is not None:
-            self.file_picker.pick_files(
+    async def _on_pick_file(self, _event: ft.ControlEvent) -> None:
+        """Open the native file dialog and apply the picked image.
+
+        In Flet 0.85 FilePicker is a non-visual Service registered via
+        ``page.services`` (not ``page.overlay``). ``pick_files`` is a coroutine
+        that returns the selected files directly, so there is no on_result
+        callback anymore.
+        """
+        if self.file_picker is None:
+            return
+        try:
+            files = await self.file_picker.pick_files(
                 dialog_title="Выберите фото товара",
                 file_type=ft.FilePickerFileType.CUSTOM,
                 allowed_extensions=["jpg", "jpeg", "png", "webp"],
                 allow_multiple=False,
             )
+        except Exception as exc:
+            self._set_status(f"Не удалось выбрать файл: {exc}")
+            return
+        self._apply_picked_files(files)
 
-    def _on_file_picked(self, event: ft.FilePickerResultEvent) -> None:
-        if event.files and event.files:
-            file = event.files[0]
-            self._selected_file_path = Path(file.path)
+    def _apply_picked_files(self, files: Any) -> None:
+        """Update input/status from the files returned by FilePicker.pick_files."""
+        if not files:
+            self._selected_file_path = None
+            return
+        file = files[0]
+        path = getattr(file, "path", None)
+        name = getattr(file, "name", None) or ""
+        if path:
+            self._selected_file_path = Path(path)
             if self.input_field is not None:
                 self.input_field.value = str(self._selected_file_path)
-            self._set_status(f"Выбран файл: {file.name}")
+            self._set_status(f"Выбран файл: {name or path}")
         else:
             self._selected_file_path = None
+            self._set_status("Не удалось получить путь к файлу")
 
     def _on_search(self, _event: ft.ControlEvent | None) -> None:
         value = ""

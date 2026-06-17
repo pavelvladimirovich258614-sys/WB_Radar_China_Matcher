@@ -28,6 +28,7 @@ class FakePage:
         self.bgcolor: Any | None = None
         self.controls: list[Any] = []
         self.overlay: list[Any] = []
+        self.services: list[Any] = []
 
     def add(self, control: Any) -> None:
         self.controls.append(control)
