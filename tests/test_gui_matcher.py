@@ -346,7 +346,7 @@ def test_apply_picked_files_updates_input_and_status() -> None:
     assert controller.input_field is not None
     assert controller.input_field.value == str(Path("D:/imgs/photo.png"))
     assert controller.status_text is not None
-    assert "Выбран файл" in controller.status_text.value
+    assert "Фото выбрано" in controller.status_text.value
 
 
 def test_apply_picked_files_without_path_clears_selection() -> None:

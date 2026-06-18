@@ -12,6 +12,24 @@ import flet as ft
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_update_page(page: Any) -> None:
+    """Best-effort ``page.update()`` (no-op on test doubles without update).
+
+    Mirrors ``gui.app._safe_update_page`` but kept local to avoid a circular
+    import (``gui.app`` imports from this module). In a real Flet desktop
+    client this is what actually pushes mutated control properties to the
+    screen; in unit tests the page double has no ``update`` attribute and the
+    call is a safe no-op.
+    """
+    update = getattr(page, "update", None)
+    if callable(update):
+        try:
+            update()
+        except Exception:
+            pass
+
+
 SESSION_SITES = ("1688", "taobao", "chatgpt")
 
 # Providers supported by the project out of the box.  Keep in sync with
@@ -188,6 +206,7 @@ class SettingsController:
         self.open_folder = open_folder or _default_open_folder
         self.session_status = session_status or _default_session_status
         self.on_status = on_status
+        self.page: Any | None = None
 
         self.provider_dropdown: ft.Dropdown | None = None
         self.model_field: ft.TextField | None = None
@@ -227,6 +246,10 @@ class SettingsController:
     def mask_secret(self, value: str | None) -> str:
         return mask_secret(value)
 
+    def _push(self) -> None:
+        """Push pending UI mutations to the live Flet client (no-op in tests)."""
+        _safe_update_page(self.page)
+
     def _set_status(self, message: str) -> None:
         if self.status_text is not None:
             self.status_text.value = message
@@ -235,6 +258,7 @@ class SettingsController:
                 self.on_status(message)
             except Exception:
                 pass
+        self._push()
 
     def _read_controls(self) -> dict[str, str]:
         values: dict[str, str] = {}
@@ -299,7 +323,7 @@ class SettingsController:
         self._set_status("Сохранение настроек...")
         ok = self.save_settings(values)
         if ok:
-            self._set_status("Настройки сохранены")
+            self._set_status("Настройки сохранены в .env.local")
             self._refresh_session_statuses()
         else:
             self._set_status("Не удалось сохранить настройки")
@@ -308,18 +332,29 @@ class SettingsController:
     def _refresh_session_statuses(self) -> None:
         for site, text_control in self.session_status_texts.items():
             text_control.value = self.session_status(site)
+        self._push()
 
     def _on_validate(self, _event: ft.ControlEvent | None = None) -> None:
+        # Show immediate feedback so the user sees the button did something,
+        # then run the local validation.
+        self._set_status("Проверяю настройки…")
         errors = self.validate_settings()
         if errors:
             self._set_status("Проверка не пройдена: " + "; ".join(errors))
         else:
-            self._set_status("Настройки корректны")
+            # Local validation passes. We intentionally do NOT ping the LLM
+            # provider over the network here: that needs keys + connectivity
+            # and belongs in a dedicated live check. Be honest about it so the
+            # status is informative rather than silently "OK".
+            self._set_status(
+                "Локальная проверка пройдена. Live-проверка провайдера не выполнялась."
+            )
 
     def _on_open_output(self, _event: ft.ControlEvent | None = None) -> None:
         path = "./output"
         if self.output_dir_field is not None:
             path = self.output_dir_field.value or path
+        self._set_status("Открываю папку output…")
         ok = self.open_folder(path)
         self._set_status("Открыта папка output" if ok else "Не удалось открыть output")
 
@@ -327,6 +362,7 @@ class SettingsController:
         path = "./sessions"
         if self.sessions_dir_field is not None:
             path = self.sessions_dir_field.value or path
+        self._set_status("Открываю папку sessions…")
         ok = self.open_folder(path)
         self._set_status(
             "Открыта папка sessions" if ok else "Не удалось открыть sessions"
@@ -458,8 +494,9 @@ class SettingsController:
             wrap=True,
         )
 
-    def build_content(self, _page: ft.Page) -> ft.Container:
+    def build_content(self, page: ft.Page) -> ft.Container:
         """Build the settings section content as a standalone control."""
+        self.page = page
         self.load_settings()
 
         self.status_text = ft.Text(

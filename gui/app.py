@@ -54,6 +54,7 @@ class MatcherChinaController:
         self.downloader = downloader
         self.output_root = output_root
         self.on_status = on_status
+        self.page: Any | None = None
 
         self.input_field: ft.TextField | None = None
         self.file_picker: ft.FilePicker | None = None
@@ -73,6 +74,7 @@ class MatcherChinaController:
         """Set the matcher input field value (used by the "To Matcher" bridge)."""
         if self.input_field is not None:
             self.input_field.value = value
+        self._push()
 
     def focus_input(self) -> None:
         """Move focus to the matcher input field (best-effort)."""
@@ -91,6 +93,16 @@ class MatcherChinaController:
         except Exception:
             pass
 
+    def _push(self) -> None:
+        """Push pending UI mutations to the live Flet client.
+
+        ``page.update()`` is what actually re-renders the desktop client. In
+        unit tests the page double usually has no ``update`` attribute, in
+        which case this is a safe no-op (so the tests keep reading values
+        straight off the in-memory controls).
+        """
+        _safe_update_page(self.page)
+
     def _set_status(self, message: str) -> None:
         if self.status_text is not None:
             self.status_text.value = message
@@ -99,10 +111,12 @@ class MatcherChinaController:
                 self.on_status(message)
             except Exception:
                 pass
+        self._push()
 
     def _show_progress(self, visible: bool) -> None:
         if self.progress_bar is not None:
             self.progress_bar.visible = visible
+        self._push()
 
     def _build_input_row(self, page: ft.Page) -> ft.Row:
         self.input_field = ft.TextField(
@@ -143,6 +157,7 @@ class MatcherChinaController:
         """
         if self.file_picker is None:
             return
+        self._set_status("Открываю выбор файла…")
         try:
             files = await self.file_picker.pick_files(
                 dialog_title="Выберите фото товара",
@@ -159,6 +174,7 @@ class MatcherChinaController:
         """Update input/status from the files returned by FilePicker.pick_files."""
         if not files:
             self._selected_file_path = None
+            self._set_status("Выбор фото отменён")
             return
         file = files[0]
         path = getattr(file, "path", None)
@@ -167,7 +183,7 @@ class MatcherChinaController:
             self._selected_file_path = Path(path)
             if self.input_field is not None:
                 self.input_field.value = str(self._selected_file_path)
-            self._set_status(f"Выбран файл: {name or path}")
+            self._set_status(f"Фото выбрано: {name or path}")
         else:
             self._selected_file_path = None
             self._set_status("Не удалось получить путь к файлу")
@@ -227,12 +243,14 @@ class MatcherChinaController:
             self.results_column.controls.append(
                 ft.Text("Ничего не найдено", color=ft.Colors.ON_SURFACE_VARIANT)
             )
+            self._push()
             return
 
         for candidate in candidates:
             self.results_column.controls.append(
                 self._build_candidate_row(candidate)
             )
+        self._push()
 
     def _build_candidate_row(self, candidate: Candidate) -> ft.Card:
         actions = ft.Row(
@@ -368,6 +386,7 @@ class MatcherChinaController:
         Flet 0.85 ``ft.Tab`` has no ``content`` field, so the section UI is
         exposed here as a standalone control for the desktop shell to mount.
         """
+        self.page = page
         self.results_column = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
         self.status_text = ft.Text("Готов к поиску", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
         self.progress_bar = ft.ProgressBar(visible=False, color=ft.Colors.PRIMARY)
@@ -436,6 +455,7 @@ class DiscoveryWBController:
         self.output_root = output_root
         self.to_matcher_bridge = to_matcher_bridge
         self.on_status = on_status
+        self.page: Any | None = None
 
         self.niche_input: ft.TextField | None = None
         self.search_button: ft.Button | None = None
@@ -451,6 +471,10 @@ class DiscoveryWBController:
         self._last_hooks: VideoHookSet | None = None
         self._last_videos: list[ReviewVideoItem] = []
 
+    def _push(self) -> None:
+        """Push pending UI mutations to the live Flet client (no-op in tests)."""
+        _safe_update_page(self.page)
+
     def _set_status(self, message: str) -> None:
         if self.status_text is not None:
             self.status_text.value = message
@@ -459,10 +483,12 @@ class DiscoveryWBController:
                 self.on_status(message)
             except Exception:
                 pass
+        self._push()
 
     def _show_progress(self, visible: bool) -> None:
         if self.progress_bar is not None:
             self.progress_bar.visible = visible
+        self._push()
 
     def _on_search(self, _event: ft.ControlEvent | None) -> None:
         query = ""
@@ -513,6 +539,7 @@ class DiscoveryWBController:
             self.results_column.controls.append(
                 ft.Text("Ничего не найдено", color=ft.Colors.ON_SURFACE_VARIANT)
             )
+            self._push()
             return
 
         header = ft.Row(
@@ -534,6 +561,7 @@ class DiscoveryWBController:
             self.results_column.controls.append(
                 self._build_product_row(product)
             )
+        self._push()
 
     def _build_product_row(self, product: ViralProduct) -> ft.Row:
         select_button = ft.Button(
@@ -577,6 +605,7 @@ class DiscoveryWBController:
             self._load_voc(product.nmId)
             self._load_hooks(product.nmId)
             self._load_review_videos(product.nmId)
+            self._push()
         except Exception as exc:
             logger.exception("Product detail loading failed")
             self._set_status(f"Ошибка загрузки деталей: {exc}")
@@ -710,6 +739,7 @@ class DiscoveryWBController:
         if self.to_matcher_bridge is not None:
             try:
                 self.to_matcher_bridge(nm_id)
+                self._set_status("Артикул перенесён в Матчер China")
             except Exception as exc:
                 logger.exception("Bridge to matcher failed")
                 self._set_status(f"Ошибка моста в Матчер: {exc}")
@@ -718,6 +748,7 @@ class DiscoveryWBController:
 
     def build_content(self, page: ft.Page) -> ft.Container:
         """Build the discovery section content as a standalone control."""
+        self.page = page
         self.niche_input = ft.TextField(
             label="Ниша / запрос",
             hint_text="например: фен для волос",

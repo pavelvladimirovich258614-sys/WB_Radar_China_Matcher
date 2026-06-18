@@ -92,10 +92,26 @@ Outputs are saved under `output/`:
   `chatgpt_web`.
 - Enter the provider key or base URL. Values are saved to `.env.local` and
   are not committed.
-- Set proxy if needed.
+- Set proxy if needed. An empty proxy is valid (no proxy is used).
 - Configure output and sessions folders.
 - View session status for 1688, Taobao, and ChatGPT.
+- Click **Проверить настройки** to run a **local** validation of provider,
+  proxy, and paths. The button shows an immediate `Проверяю настройки…`
+  status, then a result. On success it reports
+  `Локальная проверка пройдена. Live-проверка провайдера не выполнялась.`
+  — it does **not** contact the LLM provider over the network. A real
+  live/provider ping is a possible future step; for now the check is
+  local-only and always gives visible feedback.
+- Click **Сохранить** to persist provider/model/proxy/paths and any entered
+  keys to `.env.local`. The status then reads
+  `Настройки сохранены в .env.local`. Keys are shown masked
+  (e.g. `sk****wxyz`) and in password fields, so the full key is never
+  displayed.
 - Click **Открыть output** or **Открыть sessions** to open those folders.
+
+> Every action in this tab (and in Матчер China / Разведка WB) immediately
+> refreshes the visible status, progress, and results — the UI is pushed to
+> the client on each action, so buttons always give a visible reaction.
 
 ## Build the Windows executable
 
