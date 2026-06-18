@@ -293,6 +293,9 @@ def _fill_valid_settings(controller: SettingsController, *, proxy: str = "") -> 
     controller.proxy_field.value = proxy
     controller.output_dir_field.value = "./output"
     controller.sessions_dir_field.value = "./sessions"
+    # A real (non-masked) key so the local check finds a key for the provider.
+    if "openrouter" in controller.key_fields:
+        controller.key_fields["openrouter"].value = "sk-or-test-key-1234567890"
 
 
 def test_settings_validate_pushes_and_shows_live_check_warning() -> None:

@@ -88,30 +88,46 @@ Outputs are saved under `output/`:
 
 ## Настройки tab
 
-- Select an LLM provider: `openrouter`, `zai`, `groq`, `ollama`, or
-  `chatgpt_web`.
-- Enter the provider key or base URL. Values are saved to `.env.local` and
-  are not committed.
-- Set proxy if needed. An empty proxy is valid (no proxy is used).
-- Configure output and sessions folders.
-- View session status for 1688, Taobao, and ChatGPT.
-- Click **Проверить настройки** to run a **local** validation of provider,
-  proxy, and paths. The button shows an immediate `Проверяю настройки…`
-  status, then a result. On success it reports
-  `Локальная проверка пройдена. Live-проверка провайдера не выполнялась.`
-  — it does **not** contact the LLM provider over the network. A real
-  live/provider ping is a possible future step; for now the check is
-  local-only and always gives visible feedback.
-- Click **Сохранить** to persist provider/model/proxy/paths and any entered
-  keys to `.env.local`. The status then reads
-  `Настройки сохранены в .env.local`. Keys are shown masked
-  (e.g. `sk****wxyz`) and in password fields, so the full key is never
-  displayed.
-- Click **Открыть output** or **Открыть sessions** to open those folders.
+Here you configure the LLM provider, model, proxy, paths, and API keys, and
+verify them step by step. There are three distinct actions:
+
+- **Сохранить** — persists provider/model/proxy/output/sessions and any key
+  you typed into `.env.local` (git-ignored). Status reads
+  `Настройки сохранены в .env.local`. The **Ключ** badge then shows the
+  selected provider's key masked, e.g. `ZAI_API_KEY: найден sk****wxyz`.
+  Saving never erases unrelated lines already present in `.env.local`.
+
+- **Проверить локально** — a **local-only** check (no network). It verifies:
+  provider selected, model filled, proxy empty-or-valid, output/sessions set,
+  and that a key for the selected provider exists (typed in the field, or
+  already saved in `.env`/`.env.local`). On success it reports, for example:
+  `Локальная проверка пройдена. Ключ найден: ZAI_API_KEY sk****wxyz.
+  Онлайн-проверка ещё не выполнялась — нажмите «Проверить ключ онлайн».`
+  This deliberately does **not** claim the key works online — it only says a
+  key is present and the config is well-formed.
+
+- **Проверить ключ онлайн** — the only action that contacts the provider. It
+  first runs the local check, then sends one minimal chat-completion request
+  to the selected provider and reports an explicit result:
+  - success → `Онлайн-проверка «ZAI» прошла. Модель «glm-5.1» ответила.`
+  - auth error (401/403) → `Ключ «ZAI» не принят: ошибка авторизации.`
+  - model error (400/404/422) → `Ключ принят, но модель «glm-5.1» недоступна.`
+  - network/timeout error → `Не удалось подключиться… Проверьте интернет/proxy.`
+
+  Supported online: `zai`, `openrouter`, `groq`, `ollama`. `chatgpt_web` is a
+  browser-backed provider and reports “онлайн-проверка не реализована”. The
+  full key is never shown — only a masked form.
+
+A **Статус проверок** block shows three live badges:
+`Локальная проверка` / `Онлайн-проверка` / `Ключ`, plus a “Последнее действие”
+line. An empty proxy is valid (no proxy is used). Keys are stored only in
+`.env.local`, displayed in password fields and masked everywhere, and are
+never committed.
 
 > Every action in this tab (and in Матчер China / Разведка WB) immediately
-> refreshes the visible status, progress, and results — the UI is pushed to
-> the client on each action, so buttons always give a visible reaction.
+> refreshes the visible status and badges — the UI is pushed to the client on
+> each action, so buttons always give a visible reaction. The online check may
+> take a few seconds (timeout ~20s); its status is shown before it runs.
 
 ## Build the Windows executable
 

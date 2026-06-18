@@ -8,7 +8,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+import httpx
 import flet as ft
+
+from core.llm.base import LLMAuthError, LLMRequestError
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +174,271 @@ def mask_secret(value: str | None, visible: int = 4) -> str:
     return f"{text[:2]}****{text[-visible:]}"
 
 
+# --------------------------------------------------------------------------- #
+# Online provider key check
+# --------------------------------------------------------------------------- #
+#
+# ``check_provider_online`` performs a single minimal chat-completion request
+# against the selected LLM provider to verify the API key/model/connectivity.
+# It REUSES the existing project providers (core.llm.*) — same endpoints, auth
+# headers and transport — instead of inventing a parallel HTTP client. The
+# httpx client is injectable so tests never touch the network.
+#
+# Security: the API key is never logged or printed; only a masked form is
+# returned. ``Authorization`` headers are produced by the provider and not
+# logged here.
+
+DEFAULT_CHECK_TIMEOUT = 20.0
+_ONLINE_CHECK_PROMPT = [{"role": "user", "content": "Reply with exactly: OK"}]
+
+# Friendly labels and which providers support an online ping.
+_PROVIDER_LABEL = {
+    "openrouter": "OpenRouter",
+    "zai": "ZAI",
+    "groq": "Groq",
+    "ollama": "Ollama",
+    "chatgpt_web": "ChatGPT-web",
+}
+
+# Online check statuses — stable identifiers (do not localise these values).
+CHECK_OK = "ok"
+CHECK_AUTH_ERROR = "auth_error"
+CHECK_MODEL_ERROR = "model_error"
+CHECK_NETWORK_ERROR = "network_error"
+CHECK_MISSING_KEY = "missing_key"
+CHECK_NOT_SUPPORTED = "not_supported"
+CHECK_UNKNOWN_ERROR = "unknown_error"
+
+_HTTP_STATUS_RE = re.compile(r"HTTP\s+(\d{3})", re.IGNORECASE)
+
+
+@dataclass
+class ProviderCheckResult:
+    """Structured result of an online provider check."""
+
+    ok: bool
+    status: str
+    message: str
+    masked_key: str = ""
+
+
+# Injectable online-check callable (defaults to :func:`check_provider_online`).
+OnlineChecker = Callable[..., ProviderCheckResult]
+
+
+class _ProbeLLM:
+    """Minimal stand-in for ``Settings.llm`` used to build a probe provider."""
+
+    def __init__(self, model: str, temperature: float = 0.0) -> None:
+        self.model = model
+        self.temperature = temperature
+
+
+class _ProbeSettings:
+    """Minimal stand-in for ``Settings`` carrying only what a provider needs.
+
+    Only the attribute relevant to the selected provider is populated, so the
+    provider reads the just-entered key/model even before the user saves.
+    """
+
+    def __init__(
+        self,
+        provider: str,
+        model: str,
+        api_key: str | None,
+        base_url: str | None,
+    ) -> None:
+        self.llm = _ProbeLLM(model)
+        self.openrouter_api_key = api_key if provider == "openrouter" else None
+        self.zai_api_key = api_key if provider == "zai" else None
+        self.groq_api_key = api_key if provider == "groq" else None
+        self.ollama_base_url = base_url if provider == "ollama" else None
+
+
+def _provider_class(provider: str) -> Any | None:
+    """Lazy import of the provider class for ``provider`` (avoids heavy import
+    at GUI startup and keeps this module decoupled)."""
+    normalized = (provider or "").strip().lower()
+    if normalized in ("zai", "z.ai", "glm"):
+        from core.llm.zai import ZAIProvider
+
+        return ZAIProvider
+    if normalized == "openrouter":
+        from core.llm.openrouter import OpenRouterProvider
+
+        return OpenRouterProvider
+    if normalized == "groq":
+        from core.llm.groq import GroqProvider
+
+        return GroqProvider
+    if normalized == "ollama":
+        from core.llm.ollama import OllamaProvider
+
+        return OllamaProvider
+    return None
+
+
+def _extract_http_status(message: str) -> int | None:
+    match = _HTTP_STATUS_RE.search(message or "")
+    return int(match.group(1)) if match else None
+
+
+def _build_check_client(timeout: float, proxy: str | None) -> httpx.Client:
+    """Build an httpx client honouring an optional proxy across httpx versions."""
+    if not proxy:
+        return httpx.Client(timeout=timeout)
+    try:
+        return httpx.Client(timeout=timeout, proxy=proxy)
+    except TypeError:  # older httpx used ``proxies``
+        return httpx.Client(timeout=timeout, proxies=proxy)
+
+
+def check_provider_online(
+    provider: str,
+    model: str,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    proxy: str | None = None,
+    timeout: float = DEFAULT_CHECK_TIMEOUT,
+    *,
+    client: httpx.Client | None = None,
+) -> ProviderCheckResult:
+    """Run a minimal online check against ``provider``.
+
+    Returns a :class:`ProviderCheckResult`. The API key is never logged or
+    returned in full — only ``masked_key`` is exposed. The ``client`` argument
+    is injectable so tests can drive this through ``httpx.MockTransport``
+    without any network access.
+    """
+    normalized = (provider or "").strip().lower()
+    label = _PROVIDER_LABEL.get(normalized, normalized)
+    masked = mask_secret(api_key) if (api_key and normalized != "ollama") else ""
+
+    cls = _provider_class(normalized)
+    if cls is None:
+        return ProviderCheckResult(
+            False,
+            CHECK_NOT_SUPPORTED,
+            f"Онлайн-проверка для провайдера «{label}» не реализована.",
+            masked,
+        )
+
+    if normalized != "ollama" and not api_key:
+        return ProviderCheckResult(
+            False,
+            CHECK_MISSING_KEY,
+            f"Не задан API-ключ для «{label}».",
+            masked,
+        )
+
+    if normalized == "ollama" and not base_url:
+        from core.llm.ollama import DEFAULT_OLLAMA_BASE_URL
+
+        base_url = DEFAULT_OLLAMA_BASE_URL
+
+    probe = _ProbeSettings(normalized, model, api_key, base_url)
+    owns_client = client is None
+    if owns_client:
+        client = _build_check_client(timeout, proxy)
+
+    try:
+        prov = cls(settings=probe, client=client, timeout=timeout)
+        try:
+            prov.complete(list(_ONLINE_CHECK_PROMPT), max_tokens=8)
+        finally:
+            # Provider does not own the injected client; we close it below.
+            pass
+    except LLMAuthError:
+        return ProviderCheckResult(
+            False,
+            CHECK_AUTH_ERROR,
+            f"Ключ «{label}» не принят: ошибка авторизации (401/403).",
+            masked,
+        )
+    except LLMRequestError as exc:
+        status = _extract_http_status(str(exc))
+        if status in (400, 404, 422):
+            return ProviderCheckResult(
+                False,
+                CHECK_MODEL_ERROR,
+                f"Ключ «{label}» принят, но модель «{model or '?'}» недоступна (HTTP {status}).",
+                masked,
+            )
+        if status is not None:
+            return ProviderCheckResult(
+                False,
+                CHECK_NETWORK_ERROR,
+                f"Не удалось подключиться к «{label}» (HTTP {status}). Проверьте интернет/proxy.",
+                masked,
+            )
+        return ProviderCheckResult(
+            False,
+            CHECK_NETWORK_ERROR,
+            f"Не удалось подключиться к «{label}». Проверьте интернет/proxy.",
+            masked,
+        )
+    except httpx.TimeoutException:
+        return ProviderCheckResult(
+            False,
+            CHECK_NETWORK_ERROR,
+            f"Таймаут подключения к «{label}». Проверьте интернет/proxy.",
+            masked,
+        )
+    except httpx.HTTPError:
+        return ProviderCheckResult(
+            False,
+            CHECK_NETWORK_ERROR,
+            f"Сетевая ошибка при обращении к «{label}». Проверьте интернет/proxy.",
+            masked,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return ProviderCheckResult(
+            False,
+            CHECK_UNKNOWN_ERROR,
+            f"Ошибка онлайн-проверки: {exc}",
+            masked,
+        )
+    finally:
+        if owns_client and client is not None:
+            try:
+                client.close()
+            except Exception:
+                pass
+
+    return ProviderCheckResult(
+        True,
+        CHECK_OK,
+        f"Онлайн-проверка «{label}» прошла. Модель «{model or '?'}» ответила.",
+        masked,
+    )
+
+
+def _read_secret_from_env(key_name: str) -> str | None:
+    """Read a secret value for ``key_name`` from ``.env`` then ``.env.local``.
+
+    ``.env.local`` wins (read last). Used to resolve a key the user already
+    saved without relying on in-process settings mutation. Never logs values.
+    """
+    from core.config import PROJECT_ROOT
+
+    value: str | None = None
+    for fname in (".env", ".env.local"):
+        path = PROJECT_ROOT / fname
+        try:
+            if not path.exists():
+                continue
+            for line in path.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or "=" not in stripped:
+                    continue
+                k, v = stripped.split("=", 1)
+                if k.strip() == key_name:
+                    value = v.strip().strip('"').strip("'")
+        except Exception as exc:
+            logger.warning("Could not read %s for %s: %s", fname, key_name, exc)
+    return value
+
+
 @dataclass
 class SettingsSnapshot:
     """Read-only snapshot of the settings relevant to the GUI."""
@@ -201,11 +469,17 @@ class SettingsController:
         open_folder: FolderOpener | None = None,
         session_status: SessionChecker | None = None,
         on_status: Callable[[str], Any] | None = None,
+        online_checker: OnlineChecker | None = None,
+        check_timeout: float = DEFAULT_CHECK_TIMEOUT,
     ) -> None:
         self.save_settings = save_settings or _default_save_settings
         self.open_folder = open_folder or _default_open_folder
         self.session_status = session_status or _default_session_status
         self.on_status = on_status
+        # Injectable so tests never hit the network. Defaults to the real
+        # online check, which is only invoked on an explicit user click.
+        self.online_checker = online_checker or check_provider_online
+        self.check_timeout = check_timeout
         self.page: Any | None = None
 
         self.provider_dropdown: ft.Dropdown | None = None
@@ -215,6 +489,9 @@ class SettingsController:
         self.sessions_dir_field: ft.TextField | None = None
         self.key_fields: dict[str, ft.TextField] = {}
         self.status_text: ft.Text | None = None
+        self.local_status_text: ft.Text | None = None
+        self.online_status_text: ft.Text | None = None
+        self.key_status_text: ft.Text | None = None
         self.session_status_texts: dict[str, ft.Text] = {}
         self.content_container: ft.Container | None = None
 
@@ -291,6 +568,10 @@ class SettingsController:
         if provider not in LLM_PROVIDERS:
             errors.append(f"Неизвестный LLM-провайдер: {provider!r}")
 
+        model = values.get("llm.model", "").strip()
+        if not model:
+            errors.append("Не задана модель LLM")
+
         proxy = values.get("proxy", "").strip()
         if proxy:
             # Accept bare host:port as well as explicit scheme.
@@ -325,6 +606,7 @@ class SettingsController:
         if ok:
             self._set_status("Настройки сохранены в .env.local")
             self._refresh_session_statuses()
+            self._refresh_key_status()
         else:
             self._set_status("Не удалось сохранить настройки")
         return ok
@@ -334,21 +616,151 @@ class SettingsController:
             text_control.value = self.session_status(site)
         self._push()
 
-    def _on_validate(self, _event: ft.ControlEvent | None = None) -> None:
-        # Show immediate feedback so the user sees the button did something,
-        # then run the local validation.
-        self._set_status("Проверяю настройки…")
-        errors = self.validate_settings()
-        if errors:
-            self._set_status("Проверка не пройдена: " + "; ".join(errors))
+    # ----- status badges + secret resolution ------------------------------ #
+
+    def _set_local_status(self, value: str) -> None:
+        if self.local_status_text is not None:
+            self.local_status_text.value = value
+        self._push()
+
+    def _set_online_status(self, value: str) -> None:
+        if self.online_status_text is not None:
+            self.online_status_text.value = value
+        self._push()
+
+    def _resolve_probe_secret(self, provider: str) -> str | None:
+        """Resolve the secret/base_url to probe for ``provider``.
+
+        Prefers a freshly-typed value from the UI field (the masked placeholder
+        contains ``****`` and is never treated as a real key); otherwise falls
+        back to the value persisted in ``.env`` / ``.env.local``. Never logs
+        the value.
+        """
+        field_obj = self.key_fields.get(provider)
+        field_val = str(field_obj.value or "").strip() if field_obj else ""
+        if field_val and "****" not in field_val:
+            return field_val
+        key_name = PROVIDER_SECRET_KEY.get(provider)
+        if key_name:
+            return _read_secret_from_env(key_name)
+        return None
+
+    def _refresh_key_status(self) -> None:
+        """Update the “Ключ” badge for the currently selected provider."""
+        if self.key_status_text is None:
+            return
+        provider = ""
+        if self.provider_dropdown is not None:
+            provider = str(self.provider_dropdown.value or "").strip().lower()
+        key_name = PROVIDER_SECRET_KEY.get(provider, provider)
+        resolved = self._resolve_probe_secret(provider) if provider else None
+        if resolved:
+            self.key_status_text.value = f"{key_name}: найден {mask_secret(resolved)}"
         else:
-            # Local validation passes. We intentionally do NOT ping the LLM
-            # provider over the network here: that needs keys + connectivity
-            # and belongs in a dedicated live check. Be honest about it so the
-            # status is informative rather than silently "OK".
+            self.key_status_text.value = f"{key_name}: не найден"
+        self._push()
+
+    def _on_validate(self, _event: ft.ControlEvent | None = None) -> None:
+        """Local-only validation (the “Проверить локально” button).
+
+        Verifies provider/model/proxy/paths AND that a key for the selected
+        provider is present. Never touches the network — that is the job of
+        ``_on_check_online``. The status is explicit that the online check has
+        not run, so it never reads as a silent “ключ рабочий”.
+        """
+        self._set_status("Локальная проверка…")
+        values = self._read_controls()
+        errors = self.validate_settings(values)
+        provider = values.get("llm.provider", "").strip().lower()
+        key_name = PROVIDER_SECRET_KEY.get(provider, provider)
+
+        if errors:
+            self._set_local_status("НЕ ПРОЙДЕНА")
+            self._set_status("Проверка не пройдена: " + "; ".join(errors))
+            return
+
+        if provider == "chatgpt_web":
+            self._set_local_status("OK")
             self._set_status(
-                "Локальная проверка пройдена. Live-проверка провайдера не выполнялась."
+                "Локальная проверка пройдена. Онлайн-проверка для chatgpt_web "
+                "не реализована (браузерный провайдер)."
             )
+            return
+
+        resolved = self._resolve_probe_secret(provider)
+        if not resolved:
+            self._set_local_status("НЕТ КЛЮЧА")
+            self._set_status(
+                f"Не найден {key_name}. Введите ключ и нажмите «Сохранить», "
+                f"затем «Проверить ключ онлайн»."
+            )
+            return
+
+        self._set_local_status("OK")
+        self._refresh_key_status()
+        self._set_status(
+            f"Локальная проверка пройдена. Ключ найден: {key_name} "
+            f"{mask_secret(resolved)}. Онлайн-проверка ещё не выполнялась — "
+            f"нажмите «Проверить ключ онлайн»."
+        )
+
+    def _on_check_online(self, _event: ft.ControlEvent | None = None) -> None:
+        """Online provider check (the “Проверить ключ онлайн” button).
+
+        Performs one minimal chat-completion request to the selected provider.
+        Requires local validation to pass and a key to be present. The key is
+        never printed — only masked. This is the ONLY place the app contacts an
+        LLM provider from the Settings tab, and only on an explicit click.
+        """
+        values = self._read_controls()
+        provider = values.get("llm.provider", "").strip().lower()
+        model = values.get("llm.model", "").strip()
+        proxy = values.get("proxy", "").strip() or None
+        key_name = PROVIDER_SECRET_KEY.get(provider, provider)
+
+        errors = self.validate_settings(values)
+        if errors:
+            self._set_online_status("НЕВОЗМОЖНА")
+            self._set_status(
+                "Сначала исправьте локальные ошибки: " + "; ".join(errors)
+            )
+            return
+
+        if provider == "chatgpt_web":
+            self._set_online_status("НЕ РЕАЛИЗОВАНА")
+            self._set_status(
+                "Онлайн-проверка для chatgpt_web не реализована (браузерный "
+                "провайдер). Локальная проверка пройдена."
+            )
+            return
+
+        resolved = self._resolve_probe_secret(provider)
+        if not resolved:
+            self._set_online_status("НЕТ КЛЮЧА")
+            self._set_status(
+                f"Не найден {key_name}. Введите ключ и нажмите «Сохранить», "
+                f"затем повторите онлайн-проверку."
+            )
+            return
+
+        self._set_status("Онлайн-проверка… (может занять несколько секунд)")
+        self._set_online_status("ВЫПОЛНЯЕТСЯ…")
+        try:
+            result = self.online_checker(
+                provider=provider,
+                model=model,
+                api_key=resolved if provider != "ollama" else None,
+                base_url=resolved if provider == "ollama" else None,
+                proxy=proxy,
+                timeout=self.check_timeout,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            self._set_online_status("ОШИБКА")
+            self._set_status(f"Ошибка онлайн-проверки: {exc}")
+            return
+
+        self._set_online_status("OK" if result.ok else "ОШИБКА")
+        self._set_status(result.message)
 
     def _on_open_output(self, _event: ft.ControlEvent | None = None) -> None:
         path = "./output"
@@ -466,18 +878,53 @@ class SettingsController:
             spacing=8,
         )
 
+    def _build_status_checks_section(self) -> ft.Column:
+        """Badges: local-check / online-check / key status (last action below)."""
+        self.local_status_text = ft.Text(
+            "не выполнялась", size=12, color=ft.Colors.ON_SURFACE_VARIANT
+        )
+        self.online_status_text = ft.Text(
+            "не выполнялась", size=12, color=ft.Colors.ON_SURFACE_VARIANT
+        )
+        self.key_status_text = ft.Text(
+            "—", size=12, color=ft.Colors.ON_SURFACE_VARIANT
+        )
+        return ft.Column(
+            [
+                ft.Text("Статус проверок", weight=ft.FontWeight.W_600),
+                ft.Row(
+                    [ft.Text("Локальная проверка", width=160), self.local_status_text],
+                    spacing=8,
+                ),
+                ft.Row(
+                    [ft.Text("Онлайн-проверка", width=160), self.online_status_text],
+                    spacing=8,
+                ),
+                ft.Row(
+                    [ft.Text("Ключ", width=160), self.key_status_text],
+                    spacing=8,
+                ),
+            ],
+            spacing=8,
+        )
+
     def _build_actions_section(self) -> ft.Row:
         return ft.Row(
             [
                 ft.Button(
-                    "Проверить настройки",
-                    icon=ft.Icons.VERIFIED,
-                    on_click=self._on_validate,
-                ),
-                ft.Button(
                     "Сохранить",
                     icon=ft.Icons.SAVE,
                     on_click=self.save_settings_to_disk,
+                ),
+                ft.Button(
+                    "Проверить локально",
+                    icon=ft.Icons.FACT_CHECK,
+                    on_click=self._on_validate,
+                ),
+                ft.Button(
+                    "Проверить ключ онлайн",
+                    icon=ft.Icons.CLOUD_DONE,
+                    on_click=self._on_check_online,
                 ),
                 ft.Button(
                     "Открыть output",
@@ -516,7 +963,10 @@ class SettingsController:
                 ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self._build_sessions_section(),
                 ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
+                self._build_status_checks_section(),
+                ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                 self._build_actions_section(),
+                ft.Text("Последнее действие:", size=11, weight=ft.FontWeight.W_500),
                 self.status_text,
             ],
             spacing=16,
@@ -526,6 +976,8 @@ class SettingsController:
 
         container = ft.Container(content=content, padding=16, expand=True)
         self.content_container = container
+        # Seed the key badge from whatever is already saved in .env/.env.local.
+        self._refresh_key_status()
         return container
 
     def build_tab(self, _page: ft.Page) -> ft.Tab:
@@ -542,11 +994,13 @@ def build_settings_tab(
     save_settings: SaveSettings | None = None,
     open_folder: FolderOpener | None = None,
     session_status: SessionChecker | None = None,
+    online_checker: OnlineChecker | None = None,
 ) -> tuple[ft.Tab, SettingsController]:
     """Build the Settings tab with dependency injection for tests."""
     controller = SettingsController(
         save_settings=save_settings,
         open_folder=open_folder,
         session_status=session_status,
+        online_checker=online_checker,
     )
     return controller.build_tab(page), controller
